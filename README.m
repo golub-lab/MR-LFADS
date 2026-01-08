@@ -1,23 +1,20 @@
-<!-- PROJECT SHIELDS -->
-<p align="center">
-  [![Contributors][contributors-shield]][contributors-url]
-  [![Forks][forks-shield]][forks-url]
-  [![Stargazers][stars-shield]][stars-url]
-  [![Issues][issues-shield]][issues-url]
-  [![MIT License][license-shield]][license-url]
-</p>
+<div align="center">
 
-<br />
+[![Contributors][contributors-shield]][contributors-url]
+[![Forks][forks-shield]][forks-url]
+[![Stargazers][stars-shield]][stars-url]
+[![Issues][issues-shield]][issues-url]
+[![MIT License][license-shield]][license-url]
 
-<p align="center">
-  <h3 align="center">
-    Multi-Regional Latent Factors via Dynamical Systems Analysis (MR-LFADS)
-  </h3>
-</p>
+# Multi-Regional Latent Factors via Dynamical Systems Analysis (MR-LFADS)
+
+</div>
+
+---
 
 <!-- TABLE OF CONTENTS -->
-<details open="open">
-  <summary>Table of Contents</summary>
+<details open>
+  <summary><strong>Table of Contents</strong></summary>
   <ol>
     <li><a href="#about-the-project">About The Project</a></li>
     <li><a href="#getting-started">Getting Started</a></li>
@@ -27,12 +24,13 @@
   </ol>
 </details>
 
-<!-- ABOUT THE PROJECT -->
+---
+
 ## About The Project
 
-[![Product Name Screen Shot][product-screenshot]](https://example.com)
+[![Product Screenshot][product-screenshot]](https://example.com)
 
-Use this section to describe the motivation, scope, and scientific contributions of MR-LFADS.
+Describe the motivation, scope, and scientific contributions of MR-LFADS here.
 
 You may include:
 - Problem formulation and objectives  
@@ -46,7 +44,8 @@ List major frameworks, libraries, and dependencies.
 - Example dependency 1  
 - Example dependency 2  
 
-<!-- GETTING STARTED -->
+---
+
 ## Getting Started
 
 Instructions for setting up the project locally.
