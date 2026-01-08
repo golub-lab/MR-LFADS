@@ -1,59 +1,62 @@
-<div align="center">
-
-[![Contributors][contributors-shield]][contributors-url]
-[![Forks][forks-shield]][forks-url]
-[![Stargazers][stars-shield]][stars-url]
-[![Issues][issues-shield]][issues-url]
-[![MIT License][license-shield]][license-url]
-
 # Multi-Regional Latent Factors via Dynamical Systems Analysis (MR-LFADS)
 
-</div>
-
----
-
 <!-- TABLE OF CONTENTS -->
-<details open>
-  <summary><strong>Table of Contents</strong></summary>
+<details open="open">
+  <summary>Table of Contents</summary>
   <ol>
-    <li><a href="#about-the-project">About The Project</a></li>
-    <li><a href="#getting-started">Getting Started</a></li>
+    <li>
+      <a href="#about-the-project">About The Project</a>
+    </li>
+    <li>
+      <a href="#getting-started">Getting Started</a>
+      <ul>
+        <li><a href="#installation">Installation</a></li>
+        <li><a href="#prerequisites">Setup</a></li>
+      </ul>
+    </li>
     <li><a href="#tutorials">Tutorials</a></li>
     <li><a href="#license">License</a></li>
     <li><a href="#contact">Contact</a></li>
   </ol>
 </details>
 
----
 
+
+<!-- ABOUT THE PROJECT -->
 ## About The Project
 
-[![Product Screenshot][product-screenshot]](https://example.com)
-
-Describe the motivation, scope, and scientific contributions of MR-LFADS here.
-
-You may include:
-- Problem formulation and objectives  
-- Methodological overview  
-- Intended applications and datasets  
-
-### Built With
-
-List major frameworks, libraries, and dependencies.
-
-- Example dependency 1  
-- Example dependency 2  
-
----
-
+<!-- GETTING STARTED -->
 ## Getting Started
 
-Instructions for setting up the project locally.
+This is an example of how you may give instructions on setting up your project locally.
+To get a local copy up and running follow these simple example steps.
 
-### Prerequisites
+### Installation
+1. Install required packages.
+2. Clone the repo
+   ```sh
+   git clone https://github.com/your_username_/Project-Name.git
+   ```
+3. Install NPM packages
+   ```sh
+   npm install
+   ```
+4. Enter your API in `config.js`
+   ```JS
+   const API_KEY = 'ENTER YOUR API';
+   ```
 
-List required software and dependencies.
+### Setup
 
-```sh
-# Example
-npm install npm@latest -g
+<!-- TUTORIALS -->
+## Tutorials
+
+Put tutorials here.
+
+<!-- LICENSE -->
+## License
+
+Distributed under the MIT License. See `LICENSE` for more information.
+
+<!-- CONTACT -->
+## Contact
