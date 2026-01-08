@@ -1,9 +1,11 @@
 import torch
 import torch.nn.functional as F
+
 from torch import nn
 from ..blocks import GRUBase, BiGRUBase, NormLinear, ScaledLinear
     
 class ICSampler(nn.Module):
+    """Initial Condition Encoder for a SRLFADS module."""
     def __init__(self, hparams, prior):
         super().__init__()
         self.hparams = hps = hparams
@@ -27,6 +29,7 @@ class ICSampler(nn.Module):
         return self.c0, g0, f0
 
 class SREncoder(nn.Module):
+    """Encoder for a SRLFADS module."""
     def __init__(self, hparams: dict, prior):
         super().__init__()
         self.hparams = hps = hparams
@@ -64,8 +67,8 @@ class SREncoder(nn.Module):
         
         # Optionally split time series for IC encoder and controller encoder
         if hps.ic_enc_seq_len > 0:
-            ic_enc_data = data[:, : hps.ic_enc_seq_len, :]
-            ci_enc_data = data[:, hps.ic_enc_seq_len :, :]
+            ic_enc_data = data[:, :hps.ic_enc_seq_len, :]
+            ci_enc_data = data[:, hps.ic_enc_seq_len:, :]
         else:
             ic_enc_data = data
             ci_enc_data = data

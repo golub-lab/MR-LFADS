@@ -58,6 +58,7 @@ class MRLFADS(pl.LightningModule):
         kl_com_scale_override: dict = {},                     # kl_com specifications (if inhomogeneous across channels)
         recon_scale_override: dict = {},                      # recon ramping specifications (area specific)
         global_area=None,                                     # for global/external inputs
+        detach_hn=True,                                       # detach holdout loss
 
         # ----- learning rate related parameters ----- #
         lr_init: float = 4.0e-3,
@@ -266,7 +267,10 @@ class MRLFADS(pl.LightningModule):
                 # Process heldout neurons
                 if len(self.hparams.hn_indices) > 0:
                     for s in sessions:
-                        preds = area.predictor[s](factor_state_split[s].clone().detach()) # so that it doesn't backprop through factor
+                        if hps.detach_hn: # so that it doesn't backprop through factor
+                            preds = area.predictor[s](factor_state_split[s].clone().detach()) 
+                        else:
+                            preds = area.predictor[s](factor_state_split[s].clone())
                         self.preds[area_name][s][:,t,:] = preds
                 
             # Reset emission based on activity of current time step

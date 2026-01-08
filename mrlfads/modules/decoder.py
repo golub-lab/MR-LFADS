@@ -5,6 +5,7 @@ from torch import nn
 from ..blocks import GRUCellBase, NormLinear, ScaledLinear
 
 class SRDecoder(nn.Module):
+    """Decoder for a SRLFADS module."""
     def __init__(self, hparams):
         super().__init__()
         self.hparams = hps = hparams
@@ -28,7 +29,7 @@ class SRDecoder(nn.Module):
         # Other layers
         self.dropout = nn.Dropout(0.3)
         self.input_dims = [2 * hps.ci_size, hps.ext_input_dim]
-        if hps.gv_dim > 0:
+        if hps.gv_dim > 0: # deprecated feature
             self.gv_scalar = nn.Parameter(torch.ones(hps.gv_dim), requires_grad=False)
 
     def forward(self, input, h_0, sample=True):

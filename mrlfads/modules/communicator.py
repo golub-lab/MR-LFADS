@@ -3,6 +3,7 @@ import torch.nn as nn
 from copy import deepcopy
         
 class SRCommunicator(nn.Module):
+    """Communicator for a SRLFADS module."""
     def __init__(self, hparams, com_prior, self_name):
         super().__init__()
         self.name = self_name
@@ -30,7 +31,7 @@ class SRCommunicator(nn.Module):
             # heldout neuron mask
             if mask_hn:
                 f = factor_state[area_name]
-                hn_idx = torch.Tensor(hps.hn_indices[area_name][0]).to(int) # use first sess
+                hn_idx = torch.Tensor(hps.hn_indices[area_name][0]).to(int) # use hn_indices of the first session only
                 mask = torch.zeros(f.shape[-1])
                 mask[hn_idx] = 1
                 mask = mask.to(bool).unsqueeze(0).to(f.device)

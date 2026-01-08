@@ -38,12 +38,7 @@ def run(
     overrides: dict = {},          # hparam overrides
     use_best: bool = False,
 ):  
-    """Instantiate and execute a PyTorch Lightning experiment from configuration.
-
-    This function reads one or more YAML configuration files to construct the
-    PyTorch Lightning model, data module, and callbacks, and then optionally
-    runs training.
-    """
+    """Instantiate and execute a PyTorch Lightning experiment from configuration."""
     # Derive relative path
     config_file = Path(config_path).expanduser()
     if not config_file.is_absolute():

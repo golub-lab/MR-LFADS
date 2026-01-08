@@ -5,19 +5,15 @@ import torch
 import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
+import mrlfads.paths as path
+
 from collections import OrderedDict
 from torch.distributions import Independent, Normal, StudentT, kl_divergence
-
-import mrlfads.paths as path
 from mrlfads.run import load
 from mrlfads.utils import Batch
 
 class ScaledLinear(nn.Linear):
-    """Linear layer with scaled weight initialization.
-
-    This layer initializes weights from a zero-mean normal distribution with
-    standard deviation 1 / sqrt(in_features), and initializes biases to zero.
-    """
+    """Linear layer with scaled weight initialization."""
     def reset_parameters(self):
         super().reset_parameters()
         nn.init.normal_(self.weight, std=1 / math.sqrt(self.in_features))
@@ -26,12 +22,7 @@ class ScaledLinear(nn.Linear):
 
 
 class NormLinear(ScaledLinear):
-    """Linear layer with row-normalized weights.
-
-    This layer applies L2 normalization to the weight matrix along the output
-    dimension at each forward pass. Optionally, it can reuse the scaled
-    initialization defined in `ScaledLinear`.
-    """
+    """Linear layer with row-normalized weights."""
     def __init__(
         self,
         in_features,
@@ -54,7 +45,6 @@ class NormLinear(ScaledLinear):
         return F.linear(x, F.normalize(self.weight, dim=1), self.bias)
     
 class MLPBase(nn.Module):
-    """Base class for constructing a multilayer perceptron (MLP)."""
     def __init__(self, features_list):
         """
         Args:
@@ -77,7 +67,6 @@ class MLPBase(nn.Module):
         return self.model(*inp)
     
 class GRUCellBase(nn.GRUCell):
-    """GRU cell with custom initialization and optional weight scaling."""
     def __init__(
         self,
         input_size: int,
@@ -114,15 +103,13 @@ class GRUCellBase(nn.GRUCell):
 
             # Biases: bias_ih = 1, last hidden_size entries set to 0; bias_hh = 0
             nn.init.ones_(self.bias_ih)
-            self.bias_ih.data[-hidden_size:] = 0.0  # reset gate
+            self.bias_ih.data[-hidden_size:] = 0.0
             nn.init.zeros_(self.bias_hh)
 
     def forward(self, input: torch.Tensor, hidden: torch.Tensor):
-        # x @ W_ih^T + b_ih
         x_all = input @ self.weight_ih.T + self.bias_ih
         x_z, x_r, x_n = torch.chunk(x_all, chunks=3, dim=1)
 
-        # Split hidden-to-hidden params
         split_dims = [2 * self.hidden_size, self.hidden_size]
         weight_hh_zr, weight_hh_n = torch.split(self.weight_hh, split_dims)
         bias_hh_zr, bias_hh_n = torch.split(self.bias_hh, split_dims)
@@ -138,7 +125,6 @@ class GRUCellBase(nn.GRUCell):
         hidden = z * hidden + (1 - z) * n
         hidden = torch.clamp(hidden, -self.clip, self.clip)
         return hidden
-
 
 class GRUBase(nn.Module):
     def __init__(
@@ -235,6 +221,7 @@ class MultivariateNormal(nn.Module):
         
         # Other reductions (mean, seq, batch)
         assert reduction in ('mean', 'seq', 'batch'), f'`reduction` cannot be {reduction}, must be none, mean, seq or batch.'
+        assert dim is not None, '`dim` cannot be none when using `reduction`=mean, seq or batch.'
         post_mean = torch.split(post_mean, dim, dim=2)
         post_std = torch.split(post_std, dim, dim=2)
         prior_mean = torch.split(self.mean, dim)
@@ -266,167 +253,112 @@ class Poisson:
             data,
             full=True,
             reduction="none",
+            log_input=True, # default should already be True
         )
-    
-    def pseudo_rsquared(self, data, params):
-        raise NotImplementedError('Not done debugging')
-        nll_model = self(data, params).mean()
-        
-        # Get neuronal mean across time (per batch per neuron)
-        means = data.mean(dim=1, keepdim=True).tile(1, data.shape[1], 1)
-        nll_null = self(data, means).mean()
-        
-        return (1 - nll_model / nll_null).item()
 
     def unbind(self, params): return params
 
     def mean(self, params): return torch.exp(params)
 
-    def rsquared(self, data, params, mode: str = "mcfadden"):
-        """Computes a reconstruction R sqaured score."""
+    def rsquared(self, data, params, mode="mcfadden", eps=1e-8):
+        """Compute reconstruction R² relative to a null model."""
         data = data.float()
-        means_model = self.unbind(params)
+        B, T, Fdim = data.shape
 
-        # Null mean + variance across time (batch, 1, neurons)
-        T = data.shape[1]
-        mean_null = data.mean(dim=1, keepdim=True).expand(-1, T, -1)
+        # Dynamic threshold: require ~10 expected events total per feature
+        # This prevents near-zero values for inflating null model performance
+        rate_threshold = 10.0 / (B * T)
+        feature_mean = data.mean(dim=(0, 1))
+        active = feature_mean > rate_threshold # mask out near-silent features
+        if not active.any(): # if no active features, return NaN
+            return float("nan")
+        data_a = data[..., active]
+        params_a = params[..., active]
+
+        B, T, _ = data_a.shape
+        mean_null = data_a.mean(dim=(0, 1), keepdim=True).expand(B, T, -1)
+        log_mean_null = torch.log(mean_null.clamp_min(eps))
 
         if mode == "mcfadden":
-            # Use learned variances (full NLL)
-            nll_model = self(data, params).sum()
-            nll_null  = F.poisson_nll_loss(
-                mean_null,
-                data,
-                full=True,
-                reduction="none",
-            ).sum()
+            nll_model = F.poisson_nll_loss(
+                params_a,
+                data_a,
+                log_input=True,
+                full=False,
+                reduction="sum",
+            )
+            nll_null = F.poisson_nll_loss(
+                log_mean_null,
+                data_a,
+                log_input=True,
+                full=False,
+                reduction="sum",
+            )
+            nll_null = torch.clamp(nll_null, min=1e-6)
             return (1.0 - nll_model / nll_null).item()
-        
-        elif mode == 'standard':
-            return 0
+
+        elif mode == "standard":
+            return 0.0
 
         else:
-            raise ValueError(f"Unknown R squared mode: {mode}. Choose from "
-                             "['mcfadden']")
+            raise ValueError(
+                f"Unknown R squared mode: {mode}. Choose from ['mcfadden']"
+            )
 
 class Gaussian:
-    def __init__(self, fix_logvar: bool = False, detach_logvar: bool = False):
+    def __init__(self):
         self.name = "gaussian"
         self.n_params = 2
 
-        assert not (fix_logvar and detach_logvar), "fix_logvar and detach_logvar cant both be True"
-        self.fix_logvar = fix_logvar
-        self.detach_logvar = detach_logvar
-
-    def __call__(self, data: torch.Tensor, params: torch.Tensor) -> torch.Tensor:
+    def __call__(self, data: torch.Tensor, params: torch.Tensor):
         means, logvars = self.unbind(params)
-        if self.fix_logvar:
-            # σ² = 1 → log σ² = 0; detach so gradients don't flow through this constraint
-            logvars = torch.zeros_like(means).detach()
-
-        recon_all = self.gaussian_nll_loss(
+        var = logvars.exp()
+        return F.gaussian_nll_loss(
             input=means,
             target=data,
-            logvar=logvars,
+            var=var,
             reduction="none",
-            detach=self.detach_logvar,
+            full=True,
+            eps=1e-6,
         )
-        return recon_all
 
-    def rsquared(self, data, params, mode: str = "standard"):
-        """Computes a reconstruction R sqaured score."""
-        means_model, logvars_model = self.unbind(params)
+    def rsquared(self, data: torch.Tensor, params: torch.Tensor, mode: str = "standard"):
+        """Compute reconstruction R² relative to a null model."""
+        means_model, _ = self.unbind(params)
 
-        # Null mean + variance across time (batch, 1, neurons)
-        T = data.shape[1]
-        mean_null = data.mean(dim=1, keepdim=True).expand(-1, T, -1)
-        var_null = data.var(dim=1, keepdim=True, unbiased=False).clamp_min(1e-12)
-        logvar_null = var_null.log().expand(-1, T, -1)
+        # Null mean + variance across batch/time (B, T, neurons)
+        B, T = data.shape[0], data.shape[1]
+        mean_null = data.mean(dim=(0, 1), keepdim=True).expand(B, T, -1)
+        var_null = (
+            data.var(dim=(0, 1), keepdim=True, unbiased=False)
+            .clamp_min(1e-12)
+            .expand(B, T, -1)
+        )
 
         if mode == "standard":
-            # standard R squared: 1 - SSE_model / SSE_null
+            # Standard R²: 1 - SSE_model / SSE_null
             sse_model = ((data - means_model) ** 2).sum()
             sse_null = ((data - mean_null) ** 2).sum()
             return (1.0 - sse_model / sse_null).item()
 
-        elif mode == "mcfadden":
-            # Use learned variances (full NLL)
+        if mode == "mcfadden":
+            # McFadden-style pseudo-R² using full NLL
             nll_model = self(data, params).sum()
-            nll_null  = self.gaussian_nll_loss(
+            nll_null = F.gaussian_nll_loss(
                 input=mean_null,
                 target=data,
-                logvar=logvar_null,
+                var=var_null,
                 reduction="sum",
-                detach=self.detach_logvar,
+                full=True,
+                eps=1e-6,
             )
             return (1.0 - nll_model / nll_null).item()
 
-        else:
-            raise ValueError(f"Unknown R squared mode: {mode}. Choose from "
-                             "['standard', 'mcfadden']")
+        raise ValueError(f"Unknown R² mode: {mode}. Choose from ['standard', 'mcfadden'].")
 
     def unbind(self, params: torch.Tensor):
         means, logvars = torch.chunk(params, 2, dim=-1)
         return means, logvars
 
-    def gaussian_nll_loss(
-        self,
-        input: torch.Tensor,      # μ
-        target: torch.Tensor,     # y
-        logvar: torch.Tensor,     # log sigma^2
-        *,
-        detach: bool = False,
-        reduction: str = "mean",  # 'none' | 'mean' | 'sum'
-        eps: float = 1e-6,
-        beta: float = 1.0,        # coefficient on log sigma^2 term (keep at 1.0 for true NLL)
-    ):
-        var = logvar.exp().clamp_min(eps)          # sigma^2
-        var_resid = var.detach() if detach else var
-        sqerr = (target - input) ** 2
-        # log sigma^2 (already numerically safe via var clamp)
-        logvar_term = torch.log(var)
-
-        per_elem = 0.5 * (sqerr / var_resid + beta * logvar_term) + 0.5 * math.log(2 * math.pi)
-
-        if reduction == "none":
-            return per_elem
-        elif reduction == "mean":
-            return per_elem.mean()
-        elif reduction == "sum":
-            return per_elem.sum()
-        else:
-            raise ValueError(f"Invalid reduction: {reduction}")
-
-    def mean(self, params):
-        return self.unbind(params)[0] # return mean only
-    
-class MRLFADS_DataGenerator:
-    def __init__(self, filename):
-        # Load corresponding model
-        try: # Fix for CodeOcean read only issues
-            state_dict = load(
-                os.path.join(path.homepath, 'scratch', filename, 'configs', 'main.yaml'),
-                validate=True, # helps initialize some things like current_info
-            )
-        except:
-            state_dict = load(
-                os.path.join(path.datapath, filename, 'configs', 'main.yaml'),
-                validate=True, # helps initialize some things like current_info
-            )
-        self.model = state_dict['model'].to('cuda')
-        self.area_name = self.model.area_names[0] # assumes there is only 1 area
-        del state_dict
-        gc.collect()
-        
-    def __call__(self, batch, info):
-        # Pre-process batch
-        mod = {}
-        for field, val in batch[0]._asdict().items(): # session=0
-            arr = torch.cat(list(val.values()), dim=2).to('cuda')
-            mod[field] = {self.area_name: arr} 
-        
-        batch = {0: Batch(**mod)}
-        self.model.current_batch = {0: self.model.holdout.preprocess(batch[0])} # need to reset current_batch from the initial validation run
-        outputs = self.model(batch)
-        output_dist = self.model.areas[self.area_name].output_dist
-        return output_dist.mean(outputs[self.area_name][0]).detach() # gives mean only
+    def mean(self, params: torch.Tensor):
+        return self.unbind(params)[0]

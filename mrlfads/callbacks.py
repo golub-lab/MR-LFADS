@@ -1,14 +1,13 @@
-"""Define callback groups and execution order for training and validation.
+"""
+Callback groups for training and validation.
 
-Callbacks are organized into two categories:
+Main classes
+------------
+OnInitEndCalls:
+    Run a sequence of callback objects once near the start of a run.
 
-    1. OnInitEndCalls: Executed once at the start of a run (e.g., hyperparameter visualization).
-
-    2. OnEpochEndCalls: Executed every `n` epochs.
-
-Notes:
-    - The TensorBoard logger must be the first (index 0) among all PyTorch
-      Lightning loggers.
+OnEpochEndCalls:
+    Run callback objects at epoch end for training and/or validation.
 """
 
 import io
@@ -113,7 +112,7 @@ class Log:
     """Collect logged metrics from a PyTorch Lightning trainer.
 
     Notes:
-        This class assumes the TensorBoard logger is `trainer.loggers[0]`.
+        - This class assumes the TensorBoard logger is `trainer.loggers[0]`.
     """
     def __init__(self,
                  tags: list = []):

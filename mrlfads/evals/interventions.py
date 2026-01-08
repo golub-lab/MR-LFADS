@@ -1,12 +1,46 @@
+"""
+Utilities for performing ablation analysis.
+
+Main functions
+---------------------
+ablate_by_channels:
+    Ablate selected generator input channels and measure rate impact.
+"""
+
 import torch
 import torch.nn as nn
 import numpy as np
 from copy import deepcopy
 
-def ablate_by_channels(model, area_name, channels, t_mask=100, t_dur=50):
-    """Ablates messages based on channel index.
-    
-    Note: Have verified that h_true_arr == states[:, 1:]
+def ablate_by_channels(
+    model,
+    area_name: str,
+    channels: list,
+    t_mask: int = 100,
+    t_dur: int = 50,
+):
+    """Ablate generator input channels over a time window and measure rate impact.
+
+    Runs the area generator in two configurations:
+        (1) With the original generator input,
+        (2) With specified input channels zeroed during `[t_mask, t_mask + t_dur)`.
+    Returns the unablated hidden trajectory, masked and unmasked readout rates,
+    and their absolute difference.
+
+    Args:
+        model: `MRLFADS` class.
+        channels: Generator input indices to zero.
+        t_mask: Start time index of the ablation window.
+        t_dur: Duration of the ablation window.
+
+    Returns:
+        h_true_arr: Unablated generator hidden states.
+        r_mask_arr: Readout rates from masked hidden states.
+        d_mask_arr: Absolute difference `|r_true - r_mask|`.
+        r_true_arr: Readout rates from unablated hidden states.
+
+    Notes:
+        - `h_true_arr` is equal to model.save_var[area_name].states[:, 1:].
     """
 
     name_to_idx = {name: idx for idx, name in enumerate(model.area_names)}
@@ -19,7 +53,7 @@ def ablate_by_channels(model, area_name, channels, t_mask=100, t_dur=50):
     hps = model.hparams
     ahps = model.areas[area_name].hparams
     time = hps.seq_len - hps.ic_enc_seq_len # total time to unroll over
-    try:
+    try: # deprecated feature
         scalar = area.decoder.gv_scalar
     except AttributeError:
         scalar = torch.ones(1).to(model.device)

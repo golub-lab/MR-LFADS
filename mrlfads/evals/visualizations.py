@@ -1,3 +1,13 @@
+"""
+Utilities for visualizing model inferences.
+
+Main functions
+--------------
+plot_reconstruction:
+    Plot reconstructed and ground-truth activity traces for selected neurons
+    across model areas.
+"""
+
 import os
 import numpy as np
 import torch
@@ -8,9 +18,24 @@ import tools.vistools as vis
 from scipy.ndimage import gaussian_filter1d
 
 def plot_reconstruction(model, indices=None, b=0, color='b', smooth=False, end=75):
+    """Plot reconstructed and ground-truth activity traces for selected neurons.
+
+    Args:
+        model: `MRLFADS` class.
+        indices: Optional neuron indices to plot. May be:
+            - None: plot the first five neurons in each area,
+            - list: use the same neuron indices for all areas,
+            - dict: map area name to a list of neuron indices.
+        b: Batch index to visualize.
+        color: Line color for reconstructed traces.
+        smooth: If True, apply temporal smoothing to the true traces.
+        end: Final time index (exclusive) to plot.
+    """
+    
     hps = model.hparams
     ic_enc_seq_len = hps.ic_enc_seq_len
     
+    # Neuron indices to plot
     if isinstance(indices, type(None)):
         indices = np.zeros(5)
         indices_dict = {an: np.arange(5).astype(int) for an in model.area_names}
