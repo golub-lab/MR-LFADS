@@ -1,52 +1,40 @@
-# Multi-Regional Latent Factors via Dynamical Systems Analysis (MR-LFADS)
+<h1 align="center">
+  Multi-Regional Latent Factors via Dynamical Systems Analysis
+</h1>
+
+  Multi-Regional Latent Factors via Dynamical Systems Analysis (MR-LFADS) is a data-driven dynamical systems model for disentangling and accurately identifying inter-regional communication in multi-region neural recordings. MR-LFADS is a sequential variational autoencoder with region-specific recurrent networks [1], structured information bottlenecks, and rate-based communication, enabling it to separate communication signals from local dynamics and inputs from unobserved regions. It outperforms existing approaches on simulated data and predicts brain-wide effects in large-scale electrophysiology, positioning it as a powerful tool for discovering principles of brain-wide information processing. 
+
+<p align="center">
+  <a href="https://icml.cc/virtual/2025/poster/45466">
+    <img src="https://img.shields.io/badge/Publication-View%20Paper-blue?style=for-the-badge" alt="Publication">
+  </a>
+</p>
 
 <!-- TABLE OF CONTENTS -->
 <details open="open">
   <summary>Table of Contents</summary>
   <ol>
-    <li>
-      <a href="#about-the-project">About The Project</a>
-    </li>
-    <li>
-      <a href="#getting-started">Getting Started</a>
-      <ul>
-        <li><a href="#installation">Installation</a></li>
-        <li><a href="#prerequisites">Setup</a></li>
-      </ul>
-    </li>
+    <li><a href="#installation-and-setup">Installation and Setup</a></li>
     <li><a href="#tutorials">Tutorials</a></li>
     <li><a href="#license">License</a></li>
     <li><a href="#contact">Contact</a></li>
+    <li><a href="#reference">Reference</a></li>
   </ol>
 </details>
 
 
+## Installation and Setup
 
-<!-- ABOUT THE PROJECT -->
-## About The Project
-
-<!-- GETTING STARTED -->
-## Getting Started
-
-This is an example of how you may give instructions on setting up your project locally.
-To get a local copy up and running follow these simple example steps.
-
-### Installation
-1. Install required packages.
+1. Install required packages via
+   ```sh
+   python -m pip install -r requirements.txt
+   ```
 2. Clone the repo
    ```sh
-   git clone https://github.com/your_username_/Project-Name.git
+   git clone https://github.com/golub-lab/MR-LFADS.git
    ```
-3. Install NPM packages
-   ```sh
-   npm install
-   ```
-4. Enter your API in `config.js`
-   ```JS
-   const API_KEY = 'ENTER YOUR API';
-   ```
+3. Setup the folder paths.
 
-### Setup
 
 <!-- TUTORIALS -->
 ## Tutorials
@@ -60,3 +48,6 @@ Distributed under the MIT License. See `LICENSE` for more information.
 
 <!-- CONTACT -->
 ## Contact
+
+## Reference
+[1] Chethan Pandarinath, Daniel J O’Shea, Jasmine Collins, Rafal Jozefowicz, Sergey D Stavisky, Jonathan C Kao, Eric M Trautmann, Matthew T Kaufman, Stephen I Ryu, Leigh R Hochberg, et al. Inferring single-trial neural population dynamics using sequential auto-encoders. Nature Methods, 15(10):805–815, 2018.
