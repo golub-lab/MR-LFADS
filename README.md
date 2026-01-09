@@ -44,7 +44,7 @@ Put tutorials here.
 <!-- LICENSE -->
 ## License
 
-Distributed under the MIT License. See `LICENSE` for more information.
+TBD
 
 <!-- CONTACT -->
 ## Contact
