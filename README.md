@@ -2,7 +2,7 @@
   Multi-Regional Latent Factors via Dynamical Systems Analysis
 </h1>
 
-  Multi-Regional Latent Factors via Dynamical Systems Analysis (MR-LFADS) is a data-driven dynamical systems model for disentangling and accurately identifying inter-regional communication in multi-region neural recordings. MR-LFADS is a sequential variational autoencoder with region-specific recurrent networks [1], structured information bottlenecks, and rate-based communication, enabling it to separate communication signals from local dynamics and inputs from unobserved regions. It outperforms existing approaches on simulated data and predicts brain-wide effects in large-scale electrophysiology, positioning it as a powerful tool for discovering principles of brain-wide information processing. 
+  Multi-Regional Latent Factors via Dynamical Systems Analysis (MR-LFADS) is a data-driven dynamical systems model for identifying inter-regional communication in multi-region neural recordings. MR-LFADS is a sequential variational autoencoder with region-specific recurrent networks [1], rate-based communication, and structured information bottlenecks, enabling it to disentangle communication signals from local dynamics and inputs from unobserved regions. It outperforms existing methods on challenging simulated benchmarks for inferring inter-regional communication, positioning it as a powerful tool for uncovering principles of brain-wide information processing.
 
 <p align="center">
   <a href="https://icml.cc/virtual/2025/poster/45466">
@@ -25,16 +25,16 @@
 
 ## Installation and Setup
 
-1. Install required packages via
-   ```sh
-   python -m pip install -r requirements.txt
-   ```
-2. Clone the repo
+1. Clone the repository:
    ```sh
    git clone https://github.com/golub-lab/MR-LFADS.git
    ```
-3. Setup the folder paths.
-
+2. Install required packages:
+   ```sh
+   cd mrlfads/
+   python -m pip install -r requirements.txt
+   ```
+3. Configure local paths by editing `mrlfads/paths.py` to match your environment.
 
 <!-- TUTORIALS -->
 ## Tutorials
