@@ -6,7 +6,6 @@ import pytorch_lightning as pl
 
 from torch import Tensor
 from typing import List, Union
-# from pytorch_lightning.trainer.supporters import CombinedLoader
 from pytorch_lightning.utilities.combined_loader import CombinedLoader
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, Dataset, random_split
@@ -43,7 +42,7 @@ class BasicDataModule(pl.LightningDataModule):
         # ----- train / validation specification ----- #
         batch_size: int = 16,
         p_split: list = [0.85, 0.15],          # train/validation split
-        train_val_split_seed: int = None,
+        train_val_split_seed: int = None,      # for reproducibility
         batch_lim: int = None,                 # limits maximum total batch number
         nn_lim: int = None,                    # limits maximum amount of neurons used
         nn_select: str = "maximum",            # use maximally responsive neurons
@@ -51,8 +50,8 @@ class BasicDataModule(pl.LightningDataModule):
 
         # ----- others ------------------------------- #
         ignore_info: bool = False,             # if True, omits loading metadata (e.g. ground truth)
-        use_photostim: bool = False,           # whether photostimulation data is used
-        photostim_areas: list = [],            # if use_photostim not not specified, defaults to all areas
+        use_input: bool = False,               # whether external input data (e.g. photostimulation) is used
+        input_areas: list = [],                # areas that receive external input data
         datapath_override: str = None,
         message_names_override: list = None,
     ):
@@ -78,7 +77,7 @@ class BasicDataModule(pl.LightningDataModule):
 
             ignore_info: If True, metadata (e.g., ground truth or auxiliary info)
                 is not loaded. Defaults to False.
-            use_photostim: If True, include photostimulation-related inputs when
+            use_input: If True, include photostimulation-related inputs when
                 loading the data. Defaults to False.
             datapath_override: Optional override for the base data directory.
                 Defaults to None.
@@ -167,9 +166,9 @@ class BasicDataModule(pl.LightningDataModule):
 
                 # Get external inputs
                 ext_input_dict = {}
-                if hps.use_photostim:
-                    if len(hps.photostim_areas) == 0: photostim_areas = hps.area_names
-                    else: photostim_areas = hps.photostim_areas
+                if hps.use_input:
+                    if len(hps.input_areas) == 0: input_areas = hps.area_names
+                    else: input_areas = hps.input_areas
                     
                     for area_name in hps.area_names:
                         dataset_name = f"inputs-{area_name}"
@@ -183,7 +182,7 @@ class BasicDataModule(pl.LightningDataModule):
                             if area_name == hps.area_names[0]:
                                 ext_input_dict[bi] = {}
                                 
-                            if area_name in photostim_areas:
+                            if area_name in input_areas:
                                 temp = arr[bi]
                             else:
                                 temp = np.zeros((hps.time_dim, 1))
