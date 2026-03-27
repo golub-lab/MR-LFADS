@@ -15,7 +15,6 @@
   <summary>Table of Contents</summary>
   <ol>
     <li><a href="#installation-and-setup">Installation and Setup</a></li>
-    <li><a href="#tutorials">Tutorials</a></li>
     <li><a href="#license">License</a></li>
     <li><a href="#contact">Contact</a></li>
     <li><a href="#reference">Reference</a></li>
@@ -37,11 +36,6 @@
    ```
 3. Configure local paths by editing `mrlfads/paths.py` to match your environment.
 
-<!-- TUTORIALS -->
-## Tutorials
-
-TBD.
-
 <!-- LICENSE -->
 ## License
 
@@ -49,6 +43,8 @@ See LICENCE file.
 
 <!-- CONTACT -->
 ## Contact
+
+For questions or feedback, please contact: belleliu@uw.edu
 
 ## Reference
 [1] Belle Liu, Jacob Sacks, and Matthew D. Golub. "Multi-Region Latent Factors via Dynamical Systems Analysis." ICML 2025. https://arxiv.org/abs/2506.19094
