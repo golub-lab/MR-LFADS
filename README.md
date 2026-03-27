@@ -1,12 +1,12 @@
-<h1 align="center">
-  Multi-Regional Latent Factors via Dynamical Systems Analysis
-</h1>
+<h2 align="center">
+  Multi-Region Latent Factors via Dynamical Systems Analysis
+</h2>
 
-  Multi-Regional Latent Factors via Dynamical Systems Analysis (MR-LFADS) is a data-driven dynamical systems model for identifying inter-regional communication in multi-region neural recordings. MR-LFADS is a sequential variational autoencoder with region-specific recurrent networks [1], rate-based communication, and structured information bottlenecks, enabling it to disentangle communication signals from local dynamics and inputs from unobserved regions. It outperforms existing methods on challenging simulated benchmarks for inferring inter-regional communication, positioning it as a powerful tool for uncovering principles of brain-wide information processing.
+  Neural recording technologies now enable simultaneous recording of population activity across many brain regions, motivating the development of data-driven models of communication between brain regions. However, existing models can struggle to disentangle the sources that influence recorded neural populations, leading to inaccurate portraits of inter-regional communication. Here, we introduce Multi-Region Latent Factor Analysis via Dynamical Systems (MR-LFADS), a sequential variational autoencoder designed to disentangle inter-regional communication, inputs from unobserved regions, and local neural population dynamics. In our paper [1], we showed that MR-LFADS outperforms existing approaches at identifying communication across dozens of simulations of task-trained multi-region networks. We also showed that, when applied to large-scale electrophysiology, MR-LFADS predicts brain-wide effects of circuit perturbations that were held out during model fitting. These validations on synthetic and real neural data position MR-LFADS as a promising tool for discovering principles of brain-wide information processing.
 
 <p align="center">
-  <a href="https://icml.cc/virtual/2025/poster/45466">
-    <img src="https://img.shields.io/badge/Publication-View%20Paper-blue?style=for-the-badge" alt="Publication">
+  <a href="https://arxiv.org/abs/2506.19094">
+    <img src="https://img.shields.io/badge/Publication-Our%20ICML%202025%20paper-blue?style=for-the-badge" alt="Publication">
   </a>
 </p>
 
@@ -29,25 +29,26 @@
    ```sh
    git clone https://github.com/golub-lab/MR-LFADS.git
    ```
-2. Install required packages:
+2. Install required packages and the `mrlfads` module:
    ```sh
    cd mrlfads/
    python -m pip install -r requirements.txt
+   pip install -e .
    ```
 3. Configure local paths by editing `mrlfads/paths.py` to match your environment.
 
 <!-- TUTORIALS -->
 ## Tutorials
 
-Put tutorials here.
+TBD.
 
 <!-- LICENSE -->
 ## License
 
-TBD
+See LICENCE file.
 
 <!-- CONTACT -->
 ## Contact
 
 ## Reference
-[1] Chethan Pandarinath, Daniel J O’Shea, Jasmine Collins, Rafal Jozefowicz, Sergey D Stavisky, Jonathan C Kao, Eric M Trautmann, Matthew T Kaufman, Stephen I Ryu, Leigh R Hochberg, et al. Inferring single-trial neural population dynamics using sequential auto-encoders. Nature Methods, 15(10):805–815, 2018.
+[1] Belle Liu, Jacob Sacks, and Matthew D. Golub. "Multi-Region Latent Factors via Dynamical Systems Analysis." ICML 2025. https://arxiv.org/abs/2506.19094
