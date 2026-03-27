@@ -5,7 +5,7 @@ outputs, and related artifacts. The paths defined here are intended to be
 imported by other modules within the MRLFADS package.
 """
 
-homepath = '/root/capsule'
-datapath = '/root/capsule/data'
-resultpath = '/root/capsule/scratch'
+homepath = '/'
+datapath = '/data'
+resultpath = '/results'
 raypath = resultpath
