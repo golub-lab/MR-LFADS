@@ -1,43 +1,18 @@
-import os
-import gc
-import abc
-import math
 import math
 import torch
-import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
 
 from collections import OrderedDict
 from torchmetrics import Metric
-from torch.distributions import MultivariateNormal as FullRankMultivariateNormal
-from torch.distributions.transforms import AffineTransform
-from torch.distributions import Independent, Normal, StudentT, kl_divergence
-from torch.optim.lr_scheduler import OneCycleLR, ReduceLROnPlateau
-
-import config.paths as path
-from mrlfads.run import load
-from mrlfads.utils.common_utils import Batch
-
+from torch.distributions import Independent, Normal, kl_divergence
 
 # ===== Linear layers ===== #
 
-class PreInitLinear(nn.Linear):
-    def __init__(
-        self,
-        filepath,
-        in_features,
-        out_features,
-        bias=True,
-    ):
-        super().__init__(in_features, out_features, bias=bias)
-
-        weight = np.load(filepath)
-        assert weight.shape == (out_features, in_features)
-
-        w = torch.from_numpy(weight).to(self.weight.dtype)
-        with torch.no_grad():
-            self.weight.copy_(w)
+def fanin_normal_init_(layer):
+    nn.init.normal_(layer.weight, std=1 / math.sqrt(layer.in_features))
+    if layer.bias is not None:
+        nn.init.zeros_(layer.bias)
 
 class ScaledLinear(nn.Linear):
     """Linear layer with scaled weight initialization."""
@@ -46,20 +21,13 @@ class ScaledLinear(nn.Linear):
         return F.linear(x, self.weight, self.bias)
 
     def reset_parameters(self):
-        nn.init.normal_(self.weight, std=1 / math.sqrt(self.in_features))
-        if self.bias is not None:
-            nn.init.zeros_(self.bias)
+        fanin_normal_init_(self)
 
 class NormLinear(nn.Linear):
     def forward(self, x):
         weight = F.normalize(self.weight, p=2, dim=1)
         return F.linear(x, weight, self.bias)
     
-def fanin_normal_init_(layer):
-    nn.init.normal_(layer.weight, std=1 / math.sqrt(layer.in_features))
-    if layer.bias is not None:
-        nn.init.zeros_(layer.bias)
-
 class LowRankLinear(nn.Module):
     """Linear layer with rank-r weight factorization: W = U @ V."""
     def __init__(
@@ -116,13 +84,12 @@ class MLPBase(nn.Module):
         for i, (in_features, out_features, activation_type) in enumerate(self.features_list):
             layers[f"linear{i}"] = nn.Linear(in_features=in_features, out_features=out_features)
             if activation_type:
-                layers[f"{activation_type}{i}"] = getattr(nn, activation_type)
+                layers[f"{activation_type}{i}"] = getattr(nn, activation_type)()
         self.model = nn.Sequential(layers)
         
     def forward(self, *inp):
         return self.model(*inp)
-    
-    
+      
 class CausalConv1d(nn.Module):
     def __init__(self, in_ch, out_ch, kernel_size, bias=True):
         super().__init__()
@@ -402,6 +369,3 @@ class EMAMetric(Metric):
         self._ema_state = smoothed_value
         return smoothed_value
     
-def det(x):
-    return x.detach() if torch.is_tensor(x) else x
-

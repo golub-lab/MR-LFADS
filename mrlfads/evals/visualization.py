@@ -1,23 +1,7 @@
-"""
-Utilities for visualizing model inferences.
-
-Main functions
---------------
-plot_reconstruction:
-    Plot reconstructed and ground-truth activity traces for selected neurons
-    across model areas.
-"""
-
-import io
-import os
 import numpy as np
 import torch
-import torch.nn
-import seaborn as sns
 import networkx as nx
-import pytorch_lightning as pl
 import matplotlib.pyplot as plt
-
 from scipy.ndimage import gaussian_filter1d
 
 import mrlfads.utils.visualization_utils as vis
@@ -67,6 +51,39 @@ def plot_reconstruction(model, indices=None, b=0, color='b', smooth=False, end=-
         for j, nn in enumerate(indices):
             true_processed = smoothing_func(true[b, :end, nn])
             recon_processed = transform(torch.from_numpy(recon[b, :end, nn]))
+            axs[j, ia].plot(true_processed, color='k')
+            axs[j, ia].plot(recon_processed, color=color, linestyle='--')
+            vis.set_invisible(axs[j, ia])
+            axs[j, ia].set_ylabel(f'Neuron {nn}')
+            
+    vis.common_col_title(fig, model.area_names, axs.shape)
+
+def plot_holdout_reconstruction(model, s=0, b=0, color='b', smooth=False, end=-1):
+    hps = model.hparams
+    ic_enc_seq_len = hps.ic_enc_seq_len
+    
+    idx_len = []
+    for area_name in model.area_names:
+        idx_len.append( len(model.hparams.hn_indices[area_name][s]) )
+    
+    num_rows = max(idx_len)
+    num_cols = len(model.areas)
+    fig, axs = plt.subplots(num_rows, num_cols, figsize=(3 * num_cols, 2 * num_rows), squeeze=False)
+    for ia, (area_name, area) in enumerate(model.areas.items()):
+        true = model.raw_batch[0].encod_data[area_name][:, ic_enc_seq_len:].cpu().detach().numpy()
+        recon = model.preds[area_name][0].cpu().detach().numpy()
+        
+        # Transform and smoothing
+        transform = area.output_dist.mean
+        if smooth:
+            smoothing_func = lambda x: gaussian_filter1d(x.astype(float), sigma=10)
+        else:
+            smoothing_func = lambda x: x
+            
+        indices = model.hparams.hn_indices[area_name][s]
+        for j, nn in enumerate(indices):
+            true_processed = smoothing_func(true[b, :end, nn])
+            recon_processed = transform(torch.from_numpy(recon[b, :end, j]))
             axs[j, ia].plot(true_processed, color='k')
             axs[j, ia].plot(recon_processed, color=color, linestyle='--')
             vis.set_invisible(axs[j, ia])
@@ -128,36 +145,3 @@ def plot_anatomy(model, ax=None, save=None, last=None, co_scale=1):
     
     if save: plt.savefig(f"/root/capsule/results/{save}.png")
     return kl_weight_dict
-
-def plot_holdout_reconstruction(model, s=0, b=0, color='b', smooth=False, end=-1):
-    hps = model.hparams
-    ic_enc_seq_len = hps.ic_enc_seq_len
-    
-    idx_len = []
-    for area_name in model.area_names:
-        idx_len.append( len(model.hparams.hn_indices[area_name][s]) )
-    
-    num_rows = max(idx_len)
-    num_cols = len(model.areas)
-    fig, axs = plt.subplots(num_rows, num_cols, figsize=(3 * num_cols, 2 * num_rows), squeeze=False)
-    for ia, (area_name, area) in enumerate(model.areas.items()):
-        true = model.raw_batch[0].encod_data[area_name][:, ic_enc_seq_len:].cpu().detach().numpy()
-        recon = model.preds[area_name][0].cpu().detach().numpy()
-        
-        # Transform and smoothing
-        transform = area.output_dist.mean
-        if smooth:
-            smoothing_func = lambda x: gaussian_filter1d(x.astype(float), sigma=10)
-        else:
-            smoothing_func = lambda x: x
-            
-        indices = model.hparams.hn_indices[area_name][s]
-        for j, nn in enumerate(indices):
-            true_processed = smoothing_func(true[b, :end, nn])
-            recon_processed = transform(torch.from_numpy(recon[b, :end, j]))
-            axs[j, ia].plot(true_processed, color='k')
-            axs[j, ia].plot(recon_processed, color=color, linestyle='--')
-            vis.set_invisible(axs[j, ia])
-            axs[j, ia].set_ylabel(f'Neuron {nn}')
-            
-    vis.common_col_title(fig, model.area_names, axs.shape)

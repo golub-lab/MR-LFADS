@@ -1,7 +1,6 @@
 import torch
 from torch import nn
-from typing import Tuple, List
-
+from typing import List
 
 class CommunicatorProcessor(nn.Module):
     def __init__(self, areas):
@@ -37,7 +36,6 @@ class CommunicatorProcessor(nn.Module):
 
         return tuple(com_outputs), tuple(com_params)
 
-
 class DecoderProcessor(nn.Module):
     def __init__(self, areas):
         super().__init__()
@@ -69,7 +67,6 @@ class DecoderProcessor(nn.Module):
             con_outputs.append(con_output)
 
         return tuple(new_states), tuple(co_params_all), tuple(con_outputs)
-
 
 class ReadoutProcessor(nn.Module):
     def __init__(self, areas):

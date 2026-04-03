@@ -1,27 +1,14 @@
 import os
 import re
-import math
-import time
-import hydra
 import torch
+import fnmatch
+import pickle
 import numpy as np
-import matplotlib.pyplot as plt
 import torch.nn.functional as F
 
-from sklearn.preprocessing import PolynomialFeatures
-from sklearn.metrics import r2_score
-from sklearn.linear_model import LinearRegression, LogisticRegression, Ridge, Lasso
-from torch import nn
-from pathlib import Path
-from typing import Dict, Any, Optional, List
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from collections import namedtuple 
 from dataclasses import dataclass
-from distutils.dir_util import copy_tree
-from omegaconf import DictConfig
-
-import config.paths as path
-
 
 # ===== Classes ===== #
 class HoldoutNeuron:
@@ -144,57 +131,10 @@ def flatten_params(source):
                 flat[".".join(new_path)] = v
     return flat
 
-def find_directories(base_path, *patterns):
-    matching_directories = []
-
-    for root, dirs, files in os.walk(base_path):
-        for directory in dirs:
-            if all(pattern in directory for pattern in patterns):
-                matching_directories.append(os.path.join(root, directory))
-
-    return matching_directories
-
 def extract_numbers_after_equal(string):
     lists = re.split('[,_]', string)
     lists = [float(elem.split("=")[1]) for elem in lists if "=" in elem]
     return lists
-
-def dir_matches_overrides(dir_name: str, overrides: Dict[str, Any], tol: float = 1e-8):
-    """
-    Check if a Ray Tune-style directory name matches all overrides.
-    Keys in overrides may contain '.' but are stored as '_' in the dir name.
-    Floats like 0.1 vs 0.1000 are treated as equal.
-    """
-    for key, value in overrides.items():
-        # Ray-style dir key ('.' -> '_')
-        key_folder = str(key).replace(".", "_")
-
-        # Capture the value:   ...<boundary>key=value...
-        # boundary = not an alphanumeric char (so '_' is allowed before key)
-        pattern = rf"(?<![A-Za-z0-9]){re.escape(key_folder)}=([A-Za-z0-9.\-]+)"
-        m = re.search(pattern, dir_name)
-        if not m:
-            return False
-
-        val_str = m.group(1)
-
-        # Try numeric comparison first (handles 0.1 vs 0.1000)
-        try:
-            v_float = float(value)
-            folder_float = float(val_str)
-        except (ValueError, TypeError):
-            # Not both floats -> fall back to string equality
-            if str(value) != val_str:
-                return False
-        else:
-            if math.isfinite(v_float) and math.isfinite(folder_float):
-                if abs(v_float - folder_float) > tol:
-                    return False
-            else:
-                if str(value) != val_str:
-                    return False
-
-    return True
 
 def deep_clone_tensors(x):
     # Base case
@@ -208,6 +148,9 @@ def deep_clone_tensors(x):
     if isinstance(x, list):
         return [deep_clone_tensors(v) for v in x]
     return x
+
+def det(x):
+    return x.detach() if torch.is_tensor(x) else x
 
 def apply_along_axis(arr, func):
     return [func(item) for item in arr]
@@ -270,45 +213,50 @@ def pad_by_index(x, counts, n_params):
     order = np.arange(n_sess * n_params).reshape(n_sess, n_params).flatten('F')
     return torch.cat([res_split[od] for od in order], dim=-1)
 
-def batch_smoothing_func(x):
-    smoothing_func = lambda x: gaussian_filter1d(x.astype(float), sigma=10)
-    return np.apply_along_axis(smoothing_func, axis=1, arr=x)
-
 def flatten(arr): return arr.reshape(-1, arr.shape[-1])
 
-class PolyRegression:
-    def __init__(self, degree, alpha=0.0, tpe="ridge"):
-        self.degree = degree
-        self.alpha = alpha
-        self.poly_features = PolynomialFeatures(degree=degree)
-        
-        if tpe == "ridge":
-            self.reg = Ridge(alpha=alpha)
-        elif tpe == "lasso":
-            self.reg = Lasso(alpha=alpha)
-        else:
-            raise ValueError()
+def mkfile(*args):
+    os.makedirs(os.path.join(*args), exist_ok=True)
 
-    def fit(self, X, y):
-        X_poly = self.poly_features.fit_transform(X)
-        self.reg.fit(X_poly, y)
-        
-    def ffit(self, X, y):
-        self.fit(flatten(X), flatten(y))
+def npsave(item, *args):
+    if len(args) > 1: mkfile(*args[:-1])
+    np.save(os.path.join(*args), item)
 
-    def predict(self, X):
-        X_poly = self.poly_features.transform(X)
-        return self.reg.predict(X_poly)
-    
-    def fpredict(self, X):
-        X_poly = self.poly_features.transform(flatten(X))
-        return self.reg.predict(X_poly).reshape(*X.shape[:2], -1)
+def npload(*args): return np.load(os.path.join(*args))
 
-    def score(self, X, y): # X: prediction, y: true
-        X_poly = self.poly_features.transform(X)
-        return self.reg.score(X_poly, y)
-    
-    def fscore(self, X, y):
-        pred = self.fpredict(X)
-        return r2_score(flatten(y), flatten(pred))
-    
+def pklsave(item, *args):
+    if len(args) > 1: mkfile(*args[:-1])
+    f = open(os.path.join(*args), "wb")
+    pickle.dump(item, f)
+    f.close()
+
+def pklload(*args):
+    f = open(os.path.join(*args), "rb")
+    data = pickle.load(f)
+    f.close()
+    return data
+
+def write_logfile(f, message):
+    with open(f, 'a') as logfile: 
+        logfile.write(message + '\n')
+
+def find_files(root_dir, pattern):
+    matches = []
+
+    for current_dir, _, files in os.walk(root_dir):
+        for file in files:
+            if fnmatch.fnmatch(file, pattern):
+                full_path = os.path.join(current_dir, file)
+                matches.append(full_path)
+
+    return matches
+
+def find_directories(base_path, *patterns):
+    matching_directories = []
+
+    for root, dirs, _ in os.walk(base_path):
+        for directory in dirs:
+            if all(pattern in directory for pattern in patterns):
+                matching_directories.append(os.path.join(root, directory))
+
+    return matching_directories

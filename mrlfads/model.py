@@ -1,18 +1,14 @@
-import os
 import torch
 import numpy as np
 import pytorch_lightning as pl
 from torch import nn
-from typing import Dict, List, Tuple
-
-import config.paths as path
 from .blocks.encoder import SREncoder, BiEncoder
 from .blocks.decoder import SRDecoder
 from .blocks.communicator import Communicator
 from .blocks.globalvars import EmptyGlobalVar
 from .blocks.processors import CommunicatorProcessor, DecoderProcessor, ReadoutProcessor
-from .utils.common_utils import Batch, SaveVariables, HoldoutNeuron, get_insert_func, HParams, pad_by_index, deep_clone_tensors
-from .utils.torch_utils import MLPBase, EMAMetric, det
+from .utils.common_utils import Batch, SaveVariables, HoldoutNeuron, HParams, pad_by_index, deep_clone_tensors, det
+from .utils.torch_utils import MLPBase, EMAMetric
 
 class MRLFADS(pl.LightningModule):
     """Multi-Regional Latent Factor Analysis via Dynamical Systems (MRLFADS).
@@ -93,7 +89,7 @@ class MRLFADS(pl.LightningModule):
         # Build heldout validation for pre- and post-processing
         self.holdout = HoldoutNeuron(self.hparams)
         
-        # Build parallel processors
+        # Build parallel processors (for faster training)
         cprocessor = CommunicatorProcessor(self.areas)
         self.cprocessor = torch.compile(
             cprocessor,
@@ -118,11 +114,6 @@ class MRLFADS(pl.LightningModule):
         batch: dict,
         sample: bool = False,
     ):
-        """
-        Notes:
-            * Decoding step
-                f_{t-1, o} --> u_{t, s} + m_{t, s} --> f_{t, s} --> r_{t, s}
-        """
         hps = self.hparams
         
         # ----- Initial Setups --------------- #
@@ -470,8 +461,6 @@ class MRLFADS(pl.LightningModule):
                     "cur_epoch": float(self.current_epoch),
                 }
             )
-            for area in self.areas.values():
-                area.run_timed_func(self.current_epoch)
             
         if step_type != "predict":
             self.log_dict(
@@ -743,21 +732,3 @@ class SRLFADS(nn.Module):
                 recurrent_size += kernel.numel()
         recurrent_penalty /= recurrent_size + 1e-8
         return recurrent_penalty
-    
-    def run_timed_func(self, current_epoch):
-        for name, (trigger, kwargs) in self.registered_funcs.items():
-            if current_epoch != trigger: continue # only trigger once
-            func = getattr(self, name)
-            func(**kwargs)
-
-    def toggle(self, components, requires_grad: bool, verbose: bool = False):
-        for comp in components:
-            module = getattr(self, comp, None)
-            if module is None:
-                raise ValueError(f"Component '{comp}' not found in {self.__class__.__name__}")
-
-            for name, p in module.named_parameters():
-                p.requires_grad_(requires_grad)
-
-                if verbose:
-                    print(f"[toggle] {comp}.{name} requires_grad -> {requires_grad}")

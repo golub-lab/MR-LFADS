@@ -1,47 +1,53 @@
+"""
+Main entry point for running training and evaluation of MR-LFADS experiments from configuration.
+This module provides two main functions:
+    - `run()`: Instantiates and executes a PyTorch Lightning experiment based on a provided YAML configuration file. Handles both training and evaluation flows, including checkpoint loading and config management.
+    - `load()`: A helper function that loads a trained model and datamodule from a specified config path, and optionally runs validation to return metrics.
+"""
+
 import os
-import re
-import math
-import time
 import shutil
-import hashlib
-import hydra
 import torch
-import logging
-import warnings
-import functools
 import numpy as np
-import torch.nn as nn
 import pytorch_lightning as pl
 
-from itertools import product
-from distutils.dir_util import copy_tree
 from glob import glob
-from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any, Optional
-from hydra.utils import call, instantiate
+from hydra.utils import instantiate
 from hydra.core.hydra_config import HydraConfig
 from hydra import compose, initialize_config_dir
-from omegaconf import OmegaConf, open_dict
+from omegaconf import OmegaConf
 
-import config.paths as path
-from mrlfads.utils.common_utils import replace_hps_str, flatten_params, find_directories, extract_numbers_after_equal, dir_matches_overrides
+from mrlfads.utils.common_utils import replace_hps_str, flatten_params, extract_numbers_after_equal, find_directories
 
 # Resolvers for reading config files
 OmegaConf.register_new_resolver("eval", eval)
 OmegaConf.register_new_resolver("relpath", lambda p: Path(__file__).parent / ".." / p)
 
 def run(
-    config_path: str,              # absolute path for the main config file
-    train: bool = True,            # train the model
-    nested: bool = False,          # if checkpoint dirs are nested, typically happens for hparam searches
-    checkpoint_dir: str = None,    # directory that stores checkpoints
-    overrides: dict = {},          # hparam overrides
+    config_path: str, 
+    train: bool = True,
+    checkpoint_dir: str = None,
     use_best: bool = False,
+    nested: bool = False, 
+    overrides: dict = {}, 
     checkpoint_override: str = None,
     model_overrides: list = None,
 ):  
-    """Instantiate and execute a PyTorch Lightning experiment from configuration."""
+    """
+    Instantiate and execute a PyTorch Lightning experiment from configuration.
+    Args:
+        config_path: Absolute path to the main YAML config file.
+        train: Whether to run training or just load the model for evaluation.
+        checkpoint_dir: Directory containing checkpoints to restore from. If None, starts training from scratch.
+        use_best: If True and checkpoint_dir is provided, loads the best checkpoint according to the trainer's checkpoint callback instead of the most recent one.
+        nested: If True, looks for checkpoints in nested directories matching the overrides pattern (for hparam searches).
+        overrides: Dictionary of parameter overrides to apply when composing the config.
+        checkpoint_override: If provided, looks for a checkpoint file in checkpoint_dir that contains this string in its name. Useful when multiple checkpoints exist and you want to specify which one to load.
+        model_overrides: If provided and checkpoint_dir is None, applies these transformations to the model after instantiation. Each item should be a tuple of (transform_function, kwargs_dict).
+    Returns:
+        If train is True, returns None. If train is False and checkpoint_dir is provided, returns a tuple of (model, datamodule, checkpoint_dict). If train is False and checkpoint_dir is None, returns a dictionary with the instantiated model and datamodule.
+    """
     # Assertions
     assert checkpoint_dir is None or model_overrides is None
     
@@ -109,9 +115,10 @@ def run(
 
         if len(matching_idxs) == 1:
             return [base_dirs[matching_idxs[0]]]
-
-        import pdb; pdb.set_trace()
-        return base_dirs
+        else:
+            raise RuntimeError(
+                f"Expected exactly one directory matching patterns {patterns} in {checkpoint_dir}, but found {len(base_dirs)} candidates."
+            )   
 
     # If a checkpoint directory is provided, locate the most recent checkpoint
     ckpt_path = checkpoint_override
@@ -126,7 +133,6 @@ def run(
 
         ckpt_pattern = os.path.join(base_dir, "lightning_checkpoints", "*.ckpt")
         candidates = glob(ckpt_pattern)
-        # ckpt_path = next((p for p in candidates if p.endswith("last.ckpt")), None)
         if ckpt_path is None:
             ckpt_path = max(candidates, key=os.path.getctime)
         else:
@@ -183,23 +189,18 @@ def load(
     config_path: str,
     validate: bool=True,
     use_best: bool=False,
-    to_scratch: bool=False,
 ):
-    """Load a trained PyTorch Lightning model, datamodule and callbacks from configuration."""
+    """
+    Load a trained PyTorch Lightning model, datamodule and callbacks from configuration.
+    Args:
+        config_path: Absolute path to the main YAML config file.
+        validate: Whether to run validation after loading the model. If False, returns the model and datamodule without running validation.
+        use_best: If True, loads the best checkpoint according to the trainer's checkpoint callback instead of the most recent one.
+    """
     # Get config path
     CUR_DIR = os.getcwd()
     config_path = Path(config_path)
     run_dir = str(config_path.parent.parent)
-    foldername = config_path.parent.parent.name
-    
-    # Copy config to results to avoid read-only issues specific to CodeOcean
-    if to_scratch:
-        new_dir = os.path.join(path.homepath, 'scratch', foldername)
-        copy_tree(run_dir, new_dir)
-        run_dir = new_dir
-        config_path = Path(run_dir) / '/'.join(config_path.parts[-2:])
-    else:
-        pass
 
     # Switch to the `RUN_DIR` and load the model from checkpoint
     os.chdir(run_dir)

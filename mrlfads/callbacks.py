@@ -1,13 +1,3 @@
-"""
-Callback groups for training and validation.
-
-Main classes
-------------
-OnEpochEndCalls:
-    Run callback objects at epoch end for training and/or validation.
-"""
-
-import io
 import os
 import math
 import time
@@ -25,9 +15,8 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
 import mrlfads.utils.visualization_utils as vis
-import mrlfads.utils.dir_utils as nav
 from mrlfads.evals.visualization import plot_anatomy
-from mrlfads.utils.common_utils import batch_smoothing_func
+from mrlfads.utils.common_utils import write_logfile
 
 plt.switch_backend("Agg")
 SAVE_DIR = "./graphs"
@@ -304,7 +293,7 @@ class TimerPlot:
         self.elapsed.append(elapsed)
 
         message = f"EPOCH {trainer.current_epoch}: {elapsed}"
-        nav.write_logfile("timer.txt", message)
+        write_logfile("timer.txt", message)
         
         if (trainer.current_epoch % self.log_every_n_epochs) != 0:
             fig, ax = plt.subplots(1, 1, figsize=(4,3))

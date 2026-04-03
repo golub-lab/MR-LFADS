@@ -4,14 +4,11 @@ import torch
 import numpy as np
 import pytorch_lightning as pl
 
-from torch import Tensor
-from typing import List, Union
 from pytorch_lightning.utilities.combined_loader import CombinedLoader
-from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, Dataset, random_split
 
 import config.paths as path
-from .utils.common_utils import Batch, convert_byte, apply_along_axis
+from .utils.common_utils import Batch
 
 class BasicDataModule(pl.LightningDataModule):
     """PyTorch Lightning DataModule for session-based, multi-area neural data.

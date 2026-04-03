@@ -1,10 +1,9 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import numpy as np
 
 from mrlfads.utils.common_utils import HParams
-from mrlfads.utils.torch_utils import GRUBase, BiGRUBase, ScaledLinear
+from mrlfads.utils.torch_utils import BiGRUBase, ScaledLinear
 
 class EmptyGlobalVar(nn.Module):
     """Placeholder global area for a MRLFADS module."""
@@ -137,6 +136,78 @@ class NoFeedbackController(nn.Module):
     def forward(self, t, sample=True, **kwargs):
         hps = self.hparams
         out = self.output[:, t-hps.lag]
+        gv_params = self.con_map(out)
+        gv_mean, gv_logvar = torch.split(gv_params, hps.gv_dim, dim=1)
+        gv_std = torch.sqrt(torch.exp(gv_logvar) + hps.gv_post_var_min)
+        
+        gv_post = self.gv_prior.make_posterior(gv_mean, gv_std)
+        gv_samp = gv_post.rsample() if sample else gv_mean
+        return torch.cat([gv_mean, gv_std], dim=1), gv_samp
+    
+class BehaviorGlobalVar(nn.Module):
+    def __init__(self, params, global_area_params):
+        super().__init__()
+        self.params = params # area related params from MRLFADS
+        self.area_names = list(self.params.keys())
+        
+        default_hps = {
+            'lag': 0,
+            'cell_clip': 5.0,
+            'dropout_rate': 0.3,
+            'gv_post_var_min': 1e-4,
+        }
+        default_hps.update(global_area_params)
+        self.gv_prior = default_hps['gv_prior']
+        del default_hps['gv_prior']
+        self.hparams = hps = HParams(default_hps)
+        
+        assert hasattr(self.hparams, 'con_dim')
+        assert hasattr(self.hparams, 'gv_dim')
+        assert hasattr(self.hparams, 'behavior_keys')
+        self.variational = True
+        
+        self.con_gru = GRUBase(
+            input_size=2*len(hps.behavior_keys),
+            hidden_size=hps.con_dim,
+            clip_value=hps.cell_clip,
+        ).float()
+        self.con_h0 = nn.Parameter(
+                torch.zeros((1, hps.con_dim), requires_grad=True)
+            )
+        self.con_map = ScaledLinear(hps.con_dim, hps.gv_dim * 2) # h_con -> gv_params
+        self.dropout = nn.Dropout(hps.dropout_rate)
+        
+    def build(self, info, batch, area_data_dict, *args, **kwargs):
+        hps = self.hparams
+        data = []
+        for var in hps.behavior_keys:
+            temp = []
+            for s in info.keys():
+                coor = info[s][var][..., :2]
+                prob = info[s][var][..., 2:] # shape = (batch, time, 1)
+                mask = (prob > 0.8).to(float)
+                temp.append( coor * mask )
+            temp = torch.cat(temp, dim=0)
+            data.append( temp )
+        
+        data = torch.cat(data, dim=2)
+        data = self.dropout(data).float() ## fix if possible
+        
+        # Adjust for lag
+        # Since input is behavior output, shift time forwards
+        data = data[:, hps.lag:]
+        pad = data[:, -1:, :]  # last timestep (because mode='replicate not supported)
+        pad = pad.expand(-1, hps.lag, -1)
+        data = torch.cat([data, pad], dim=1)
+        
+        batch_size, time_size = data.shape[:2]
+        con_h0 = torch.tile(self.con_h0, (batch_size, 1))
+        out, _ = self.con_gru(data, con_h0)
+        self.output = out
+        
+    def forward(self, t, sample=True, **kwargs):
+        hps = self.hparams
+        out = self.output[:, t]
         gv_params = self.con_map(out)
         gv_mean, gv_logvar = torch.split(gv_params, hps.gv_dim, dim=1)
         gv_std = torch.sqrt(torch.exp(gv_logvar) + hps.gv_post_var_min)

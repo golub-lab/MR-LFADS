@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 import numpy as np
 from copy import deepcopy
-from omegaconf import OmegaConf
 
 class Communicator(nn.Module):
     def __init__(self, hparams, com_prior, self_name):
