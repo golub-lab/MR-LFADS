@@ -15,6 +15,7 @@
   <summary>Table of Contents</summary>
   <ol>
     <li><a href="#installation-and-setup">Installation and Setup</a></li>
+    <li><a href="#tutorial">Tutorial</a></li>
     <li><a href="#license">License</a></li>
     <li><a href="#contact">Contact</a></li>
     <li><a href="#reference">Reference</a></li>
@@ -47,6 +48,11 @@
    pip install -e .
    ```
 5. Configure local paths by editing `config/paths.py` to match your environment.
+
+<!-- TUTORIAL -->
+## Tutorial
+
+See `tutorials/` for step-by-step instructions on how to prepare your dataset, configurate the MR-LFADS model, and perform inference on the trained model.
 
 <!-- LICENSE -->
 ## License
