@@ -27,14 +27,26 @@
 1. Clone the repository:
    ```sh
    git clone https://github.com/golub-lab/MR-LFADS.git
+   cd MR-LFADS/
    ```
-2. Install required packages and the `mrlfads` module:
+2. Create and activate a conda environment:
    ```sh
-   cd mrlfads/
+   conda create -n mrlfads_env python=3.8.5 -y
+   conda activate mrlfads_env
+   ```
+3. Install system dependencies required for `torch.compile`:
+   ```sh
+   sudo apt-get update
+   sudo apt-get install -y build-essential
+   export CC=gcc
+   export CXX=g++
+   ```
+4. Install required packages for the `mrlfads` module:
+   ```sh
    python -m pip install -r requirements.txt
    pip install -e .
    ```
-3. Configure local paths by editing `mrlfads/paths.py` to match your environment.
+5. Configure local paths by editing `config/paths.py` to match your environment.
 
 <!-- LICENSE -->
 ## License
