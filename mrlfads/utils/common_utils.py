@@ -20,7 +20,7 @@ from dataclasses import dataclass
 from distutils.dir_util import copy_tree
 from omegaconf import DictConfig
 
-import mrlfads.paths as path
+import config.paths as path
 
 
 # ===== Classes ===== #

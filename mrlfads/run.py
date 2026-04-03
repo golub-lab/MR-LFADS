@@ -24,7 +24,7 @@ from hydra.core.hydra_config import HydraConfig
 from hydra import compose, initialize_config_dir
 from omegaconf import OmegaConf, open_dict
 
-import mrlfads.paths as path
+import config.paths as path
 from mrlfads.utils.common_utils import replace_hps_str, flatten_params, find_directories, extract_numbers_after_equal, dir_matches_overrides
 
 # Resolvers for reading config files

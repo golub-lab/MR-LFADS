@@ -10,7 +10,7 @@ from pytorch_lightning.utilities.combined_loader import CombinedLoader
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, Dataset, random_split
 
-import mrlfads.paths as path
+import config.paths as path
 from .utils.common_utils import Batch, convert_byte, apply_along_axis
 
 class BasicDataModule(pl.LightningDataModule):

@@ -15,7 +15,7 @@ from torch.distributions.transforms import AffineTransform
 from torch.distributions import Independent, Normal, StudentT, kl_divergence
 from torch.optim.lr_scheduler import OneCycleLR, ReduceLROnPlateau
 
-import mrlfads.paths as path
+import config.paths as path
 from mrlfads.run import load
 from mrlfads.utils.common_utils import Batch
 

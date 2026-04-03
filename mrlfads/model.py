@@ -5,7 +5,7 @@ import pytorch_lightning as pl
 from torch import nn
 from typing import Dict, List, Tuple
 
-import mrlfads.paths as path
+import config.paths as path
 from .blocks.encoder import SREncoder, BiEncoder
 from .blocks.decoder import SRDecoder
 from .blocks.communicator import Communicator
