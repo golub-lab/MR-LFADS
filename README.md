@@ -41,14 +41,15 @@
 
 3. (Optional) Install system dependencies required for `torch.compile`:
 
-  > **Note:** This step is optional but recommended, as `torch.compile` can significantly speed up training.
-  > This step is specific to **Ubuntu/Debian** systems (`apt-get`).
+  > **Note:** This step is optional but recommended, as `torch.compile` can significantly speed up training.  
+  > The instructions below are specific to **Ubuntu/Debian** systems (`apt-get`).
+  > If `gcc` and `g++` are already installed, you can skip this step.
 
   Ubuntu / Debian:
-   ```sh
-   sudo apt-get update
-   sudo apt-get install -y build-essential
-   ```
+  ```sh
+  sudo apt-get update
+  sudo apt-get install -y build-essential
+  ```
 
   Verify required tools:
   ```sh
@@ -56,12 +57,6 @@
   g++ --version
   make --version
   ```
-
-  Set compiler environment variables:
-  ```sh
-   export CC=gcc
-   export CXX=g++
-   ```
 
 4. Create `config/paths.py` and define the following paths to match your local environment:
    ```sh
