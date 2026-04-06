@@ -10,6 +10,9 @@ from .blocks.processors import CommunicatorProcessor, DecoderProcessor, ReadoutP
 from .utils.common_utils import Batch, SaveVariables, HoldoutNeuron, HParams, pad_by_index, deep_clone_tensors, det
 from .utils.torch_utils import MLPBase, EMAMetric
 
+# If TensorCores are available
+torch.set_float32_matmul_precision('high')
+
 class MRLFADS(pl.LightningModule):
     """Multi-Regional Latent Factor Analysis via Dynamical Systems (MRLFADS).
     

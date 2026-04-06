@@ -6,5 +6,5 @@ imported by other modules within the MRLFADS package.
 """
 
 homepath = '/mmfs1/home/belleliu/MR-LFADS'
-datapath = f'{homepath}/data'
-resultpath = f'{homepath}/results'
+datapath = '/gscratch/golub/belleliu/mrlfads_storage/data'
+resultpath = '/gscratch/golub/belleliu/mrlfads_storage/results'

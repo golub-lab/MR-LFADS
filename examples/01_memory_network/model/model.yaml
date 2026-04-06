@@ -1,0 +1,232 @@
+_target_: mrlfads.model.MRLFADS
+
+# ----- DATA ----- #
+# Dataset parameters
+num_other_areas: 2
+seq_len: 200
+ic_enc_seq_len: 10
+
+# Validation: Holdout Neurons
+hn_indices:
+  A0: 
+    - [0, 1, 2, 3, 4]
+  A1: 
+    - [0, 1, 2, 3, 4]
+  A2:
+    - [0, 1, 2, 3, 4]
+
+# ----- LEARNING RATE ----- #
+lr_init: 4.0e-3
+lr_stop: 1.0e-5
+lr_decay: 0.95
+lr_patience: 6
+lr_adam_beta1: 0.9
+lr_adam_beta2: 0.999
+lr_adam_epsilon: 1.0e-8
+weight_decay: 0.0
+
+# ----- REGULARIZATION ----- #
+# KL divergence regularization
+kl_start_epoch_co: 20
+kl_increase_epoch_co: 200
+kl_start_epoch_com: 150
+kl_increase_epoch_com: 100
+kl_co_scale: 1
+kl_com_scale: 0.1
+kl_ic_scale: ${model.kl_co_scale}
+
+# L2 regularization
+l2_start_epoch: 100
+l2_increase_epoch: 80
+l2_scale: 1.0e+4
+
+# Other regularization
+dropout_rate: 0.3
+cell_clip: 5.0
+detach_hn: false
+
+# ----- MODEL ARCHITECTURE ----- #
+areas_params:
+    A0:
+        # Data
+        num_neurons:
+          n0: 64
+        ext_input_dim: 0
+    
+        # Architecture
+        data_dim: 64
+        ic_enc_dim: 64
+        ci_enc_dim: 128
+        ci_lag: 0
+        con_dim: 128
+        co_dim: 6
+        ic_dim: 64
+        gen_dim: ${eval:${model.areas_params.A0.num_neurons.n0} * 1}
+        fac_dim: ${model.areas_params.A0.data_dim}
+        com_dim: 12
+        ci_enc_type: 'bidirectional'
+
+        # Readin / Readout
+        readin:
+          _target_: torch.nn.ModuleList
+          modules:
+            - _target_: mrlfads.utils.torch_utils.ScaledLinear
+              in_features: ${model.areas_params.A0.num_neurons.n0}
+              out_features: ${model.areas_params.A0.data_dim}
+              
+        readout:
+          _target_: torch.nn.ModuleList
+          modules:
+            - _target_: mrlfads.utils.torch_utils.ScaledLinear
+              in_features: ${model.areas_params.A0.fac_dim}
+              out_features: ${eval:${model.areas_params.A0.num_neurons.n0} * 1}
+
+        # Priors / Posteriors
+        output_dist:
+          _target_: mrlfads.utils.torch_utils.Poisson
+        co_prior:
+          _target_: mrlfads.utils.torch_utils.MultivariateNormal
+          mean: 0
+          variance: 0.1
+          shape: ${model.areas_params.A0.co_dim}
+        ic_prior:
+          _target_: mrlfads.utils.torch_utils.MultivariateNormal
+          mean: 0
+          variance: 0.1
+          shape: ${model.areas_params.A0.ic_dim}
+        com_prior:
+          _target_: mrlfads.utils.torch_utils.MultivariateNormal
+          mean: 0
+          variance: 0.1
+          shape: ${eval:${model.areas_params.A0.com_dim} * ${model.num_other_areas}}
+        ic_post_var_min: 1.0e-4
+        co_post_var_min: 1.0e-4
+        com_post_var_min: 1.0e-4
+        
+        # Regularization
+        kl_ic_scale: ${model.kl_ic_scale}
+        kl_co_scale: ${model.kl_co_scale}
+        kl_com_scale: ${model.kl_com_scale}
+        
+    A1:
+        # Data
+        num_neurons:
+          n0: 64
+        ext_input_dim: 0
+        
+        # Architecture
+        data_dim: 64
+        ic_enc_dim: 64
+        ci_enc_dim: 128
+        ci_lag: 0
+        con_dim: 128
+        co_dim: 6
+        ic_dim: 64
+        gen_dim: ${eval:${model.areas_params.A1.num_neurons.n0} * 1}
+        fac_dim: ${model.areas_params.A1.data_dim}
+        com_dim: 12
+        ci_enc_type: 'bidirectional'
+
+        # Readin / Readout
+        readin:
+          _target_: torch.nn.ModuleList
+          modules:
+            - _target_: mrlfads.utils.torch_utils.ScaledLinear
+              in_features: ${model.areas_params.A1.num_neurons.n0}
+              out_features: ${model.areas_params.A1.data_dim}
+              
+        readout:
+          _target_: torch.nn.ModuleList
+          modules:
+            - _target_: mrlfads.utils.torch_utils.ScaledLinear
+              in_features: ${model.areas_params.A1.fac_dim}
+              out_features: ${eval:${model.areas_params.A1.num_neurons.n0} * 1}
+
+        # Priors / Posteriors
+        output_dist:
+          _target_: mrlfads.utils.torch_utils.Poisson
+        co_prior:
+          _target_: mrlfads.utils.torch_utils.MultivariateNormal
+          mean: 0
+          variance: 0.1
+          shape: ${model.areas_params.A1.co_dim}
+        ic_prior:
+          _target_: mrlfads.utils.torch_utils.MultivariateNormal
+          mean: 0
+          variance: 0.1
+          shape: ${model.areas_params.A1.ic_dim}
+        com_prior:
+          _target_: mrlfads.utils.torch_utils.MultivariateNormal
+          mean: 0
+          variance: 0.1
+          shape: ${eval:${model.areas_params.A1.com_dim} * ${model.num_other_areas}}
+        ic_post_var_min: 1.0e-4
+        co_post_var_min: 1.0e-4
+        com_post_var_min: 1.0e-4
+        
+        # Regularization
+        kl_ic_scale: ${model.kl_ic_scale}
+        kl_co_scale: ${model.kl_co_scale}
+        kl_com_scale: ${model.kl_com_scale}
+        
+    A2:
+        # Data
+        num_neurons:
+          n0: 64
+        ext_input_dim: 0
+        
+        # Architecture
+        data_dim: 64
+        ic_enc_dim: 64
+        ci_enc_dim: 128
+        ci_lag: 0
+        con_dim: 128
+        co_dim: 6
+        ic_dim: 64
+        gen_dim: ${eval:${model.areas_params.A2.num_neurons.n0} * 1}
+        fac_dim: ${model.areas_params.A2.data_dim}
+        com_dim: 12
+        ci_enc_type: 'bidirectional'
+
+        # Readin / Readout
+        readin:
+          _target_: torch.nn.ModuleList
+          modules:
+            - _target_: mrlfads.utils.torch_utils.ScaledLinear
+              in_features: ${model.areas_params.A2.num_neurons.n0}
+              out_features: ${model.areas_params.A2.data_dim}
+              
+        readout:
+          _target_: torch.nn.ModuleList
+          modules:
+            - _target_: mrlfads.utils.torch_utils.ScaledLinear
+              in_features: ${model.areas_params.A2.fac_dim}
+              out_features: ${eval:${model.areas_params.A2.num_neurons.n0} * 1}
+
+        # Priors / Posteriors
+        output_dist:
+          _target_: mrlfads.utils.torch_utils.Poisson
+        co_prior:
+          _target_: mrlfads.utils.torch_utils.MultivariateNormal
+          mean: 0
+          variance: 0.1
+          shape: ${model.areas_params.A2.co_dim}
+        ic_prior:
+          _target_: mrlfads.utils.torch_utils.MultivariateNormal
+          mean: 0
+          variance: 0.1
+          shape: ${model.areas_params.A2.ic_dim}
+        com_prior:
+          _target_: mrlfads.utils.torch_utils.MultivariateNormal
+          mean: 0
+          variance: 0.1
+          shape: ${eval:${model.areas_params.A2.com_dim} * ${model.num_other_areas}}
+        ic_post_var_min: 1.0e-4
+        co_post_var_min: 1.0e-4
+        com_post_var_min: 1.0e-4
+        
+        # Regularization
+        kl_ic_scale: ${model.kl_ic_scale}
+        kl_co_scale: ${model.kl_co_scale}
+        kl_com_scale: ${model.kl_com_scale}
+        

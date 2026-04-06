@@ -1,0 +1,17 @@
+on_init_end_calls:
+  _target_: mrlfads.callbacks.OnEpochEndCalls
+  callbacks:
+    - _target_: mrlfads.callbacks.get_maximum_activity_units
+    - _target_: mrlfads.callbacks.get_default_conditions
+    - _target_: mrlfads.callbacks.proctor_preview_plot
+    - _target_: mrlfads.callbacks.Log
+      tags:
+        - "lr-AdamW"
+    - _target_: mrlfads.callbacks.InferredRatesPlot
+      log_every_n_epochs: 20
+    - _target_: mrlfads.callbacks.InferredPredsPlot
+      log_every_n_epochs: 20
+    - _target_: mrlfads.callbacks.ProctorSummaryPlot
+      log_every_n_epochs: 20
+    - _target_: mrlfads.callbacks.AnatomyPlot
+      log_every_n_epochs: 20
