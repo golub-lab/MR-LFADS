@@ -61,9 +61,9 @@
 
 4. Create `config/paths.py` and define the following paths to match your local environment:
    ```sh
-  homepath = "/absolute/path/to/MR-LFADS"   # root directory of the repository
-  datapath = "/absolute/path/to/data"       # directory for datasets
-  resultpath = "/absolute/path/to/results"  # directory for training outputs
+   homepath = "/absolute/path/to/MR-LFADS"   # root directory of the repository
+   datapath = "/absolute/path/to/data"       # directory for datasets
+   resultpath = "/absolute/path/to/results"  # directory for training outputs
    ```
 
 5. Install required packages for the `mrlfads` module:
