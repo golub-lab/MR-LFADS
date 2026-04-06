@@ -25,6 +25,9 @@
 
 ## Installation and Setup
 
+> **Requirement:** A CUDA-capable GPU is required to train MR-LFADS.  
+> CPU-only execution is not supported for training.
+
 1. Clone the repository:
    ```sh
    git clone https://github.com/golub-lab/MR-LFADS.git
