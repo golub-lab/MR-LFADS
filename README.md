@@ -59,16 +59,17 @@
    export CXX=g++
    ```
 
-4. Install required packages for the `mrlfads` module:
+4. Create `config/paths.py` and define the following paths to match your local environment:
+   ```sh
+  homepath = "/absolute/path/to/MR-LFADS"   # root directory of the repository
+  datapath = "/absolute/path/to/data"       # directory for datasets
+  resultpath = "/absolute/path/to/results"  # directory for training outputs
+   ```
+
+5. Install required packages for the `mrlfads` module:
    ```sh
    python -m pip install -r requirements.txt
    pip install -e .
-   ```
-5. Create `config/paths.py` and specify the following paths in the file to match your local environment:
-   ```sh
-   homepath = '/'
-   datapath = '/data'
-   resultpath = '/results'
    ```
 
 <!-- TUTORIAL -->
