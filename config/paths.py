@@ -5,6 +5,6 @@ outputs, and related artifacts. The paths defined here are intended to be
 imported by other modules within the MRLFADS package.
 """
 
-homepath = '/'
-datapath = '/data'
-resultpath = '/results'
+homepath = '/mmfs1/home/belleliu/MR-LFADS'
+datapath = f'{homepath}/data'
+resultpath = f'{homepath}/results'
