@@ -32,55 +32,61 @@ def run(
     nested: bool = False, 
     overrides: dict = {}, 
     checkpoint_override: str = None,
-    model_overrides: list = None,
+    model_transforms: list = None,
 ):  
     """
     Instantiate and execute a PyTorch Lightning experiment from configuration.
     Args:
         config_path: Absolute path to the main YAML config file.
         train: Whether to run training or just load the model for evaluation.
-        checkpoint_dir: Directory containing checkpoints to restore from. If None, starts training from scratch.
-        use_best: If True and checkpoint_dir is provided, loads the best checkpoint according to the trainer's checkpoint callback instead of the most recent one.
-        nested: If True, looks for checkpoints in nested directories matching the overrides pattern (for hparam searches).
-        overrides: Dictionary of parameter overrides to apply when composing the config.
-        checkpoint_override: If provided, looks for a checkpoint file in checkpoint_dir that contains this string in its name. Useful when multiple checkpoints exist and you want to specify which one to load.
-        model_overrides: If provided and checkpoint_dir is None, applies these transformations to the model after instantiation. Each item should be a tuple of (transform_function, kwargs_dict).
+        checkpoint_dir: Directory containing checkpoints to restore from. 
+            If None, starts training from scratch.
+        use_best: If True and checkpoint_dir is provided, loads the best checkpoint according to 
+            the trainer's checkpoint callback instead of the most recent one.
+        nested: If True, looks for checkpoints in nested directories matching the overrides pattern
+            (for ray hyperparameter searches).
+        overrides: Dictionary of hyperparameter overrides to apply when composing the config.
+        checkpoint_override: If provided, looks for a checkpoint file in checkpoint_dir that contains 
+            this string in its name. Useful when multiple checkpoints exist and you want to specify 
+            which one to load.
+        model_transforms: If provided, applies these transformations to the model after checkpoint
+            loading if checkpoint_dir is provided, otherwise after instantiation. Each item should be
+            a tuple of (transform_function, kwargs_dict).
     Returns:
-        If train is True, returns None. If train is False and checkpoint_dir is provided, returns a tuple of (model, datamodule, checkpoint_dict). If train is False and checkpoint_dir is None, returns a dictionary with the instantiated model and datamodule.
+        If train is True, returns None. 
+        If train is False and checkpoint_dir is provided, returns a tuple of (model, datamodule, 
+            checkpoint_dict).
+        If train is False and checkpoint_dir is None, returns a tuple of (model, datamodule, None) 
+            without loading from checkpoint.
     """
-    # Assertions
-    assert checkpoint_dir is None or model_overrides is None
-    
-    # Derive relative path
+
+    # Resolve config path and compose config
     config_file = Path(config_path).expanduser()
     if not config_file.is_absolute():
         config_file = (Path.cwd() / config_file).resolve()
-    cfg_dir = config_file.parent          # absolute directory containing YAMLs
-    cfg_name = config_file.stem           # filename without extension, e.g. "main" for main.yaml
+    cfg_dir = config_file.parent
+    cfg_name = config_file.stem
 
-    # Compose the main config from that directory
     overrides_list = [f"{k}={v}" for k, v in flatten_params(overrides).items()]
     with initialize_config_dir(version_base="1.1", config_dir=str(cfg_dir)):
         config = compose(config_name=cfg_name, overrides=overrides_list)
         
-    # Print
     print('Config path: ', config_path)
     print('Checkpoint path: ', checkpoint_dir)
 
-    # Copy all config files (only do so in `train` mode)
+    # TRAIN FLOW ONLY:
+    # Save a copy of the config files used for this run in a local `configs` directory for reproducibility.
     if train:
-        # Collect hydra metadata to access config file paths
         metadata = {}
         with initialize_config_dir(version_base="1.1", config_dir=str(cfg_dir)):
             cfg = compose(
                 config_name=cfg_name,
-                return_hydra_config=True  # ensure cfg.hydra exists
+                return_hydra_config=True
             )
             HydraConfig().set_config(cfg)
             hydra_cfg = HydraConfig.get()
             metadata.update(OmegaConf.to_container(hydra_cfg.runtime.choices))
 
-        # Copy config files into result folder (relative to current working dir)
         os.makedirs("./configs", exist_ok=True)
 
         for folder in metadata:
@@ -90,17 +96,16 @@ def run(
                 os.makedirs(destination_path, exist_ok=True)
                 shutil.copy(source_path, destination_path)
 
-        # Copy the primary config file itself
         shutil.copy(os.path.join(str(cfg_dir), config_file.name), "./configs")
 
-    # Seed and instantiate datamodule/model
+    # Set random seed for reproducibility
     if config.get("seed") is not None:
         pl.seed_everything(config.seed, workers=True)
 
+    # Instantiate datamodule and model
     datamodule = instantiate(config.datamodule, _convert_="all")
     model = instantiate(config.model)
 
-    # Helper to pick a unique base directory from patterns (for nested checkpoints)
     def get_base_dirs(patterns):
         base_dirs = find_directories(checkpoint_dir, *patterns)
         if len(base_dirs) == 1:
@@ -118,9 +123,9 @@ def run(
         else:
             raise RuntimeError(
                 f"Expected exactly one directory matching patterns {patterns} in {checkpoint_dir}, but found {len(base_dirs)} candidates."
-            )   
+            )
 
-    # If a checkpoint directory is provided, locate the most recent checkpoint
+    # Determine checkpoint path to load from if checkpoint_dir is provided
     ckpt_path = checkpoint_override
     if checkpoint_dir is not None:
         if nested:
@@ -147,11 +152,8 @@ def run(
                     "\n".join(matches)
                 )
             ckpt_path = matches[0]
-            
-    elif model_overrides is not None:
-        for (transform, kwargs) in model_overrides: model = transform(model, **kwargs)
 
-    # Training flow
+    # TRAIN FLOW ONLY
     if train:
         trainer = instantiate(
             config.trainer,
@@ -170,20 +172,20 @@ def run(
             ckpt_path=ckpt_path if checkpoint_dir else None,
         )
 
-    # Evaluation-only flow: restore from checkpoint and return artifacts
+    # EVAL FLOW ONLY
     elif checkpoint_dir:
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        
-        if use_best:
-            ckpt = torch.load(trainer.checkpoint_callback.best_model_path, map_location=device)
-        else:
-            ckpt = torch.load(ckpt_path, map_location=device)
-            
+        ckpt = torch.load(ckpt_path, map_location=device)
         model.load_state_dict(ckpt["state_dict"])
-        return model, datamodule, ckpt
 
     else:
-        return {'model': model, 'datamodule': datamodule}
+        pass
+
+    # Apply custom transforms to the model
+    if model_transforms is not None:
+        for (transform, kwargs) in model_transforms:
+            model = transform(model, **kwargs)
+    return model, datamodule, None
 
 def load(
     config_path: str,
@@ -194,10 +196,15 @@ def load(
     Load a trained PyTorch Lightning model, datamodule and callbacks from configuration.
     Args:
         config_path: Absolute path to the main YAML config file.
-        validate: Whether to run validation after loading the model. If False, returns the model and datamodule without running validation.
-        use_best: If True, loads the best checkpoint according to the trainer's checkpoint callback instead of the most recent one.
+        validate: Whether to run validation after loading the model. 
+            If False, returns the model and datamodule without running validation.
+        use_best: If True, loads the best checkpoint according to the trainer's checkpoint callback
+            instead of the most recent one.
+    Returns:
+        Returns a dictionary containing the loaded model, datamodule, trainer, and validation metrics
+            (if validate is True), and checkpoint dictionary (if checkpoint_dir is provided in the config).
     """
-    # Get config path
+    # Resolve config path and compose config
     CUR_DIR = os.getcwd()
     config_path = Path(config_path)
     run_dir = str(config_path.parent.parent)
@@ -212,7 +219,7 @@ def load(
     )
     os.chdir(CUR_DIR)
 
-    # Get trainer 
+    # Set up a trainer for validation
     os.makedirs("lightning_logs", exist_ok=True)
     if torch.cuda.is_available():
         trainer = pl.Trainer(accelerator='gpu', devices=1)
@@ -220,7 +227,7 @@ def load(
         trainer = pl.Trainer(accelerator='cpu')
     model.eval()
 
-    # Run validation using the loaded trainer
+    #  Run validation and extract metrics if requested, otherwise return None for metrics
     if validate:
         trainer.validate(model, datamodule=datamodule, verbose=False)
         metrics = trainer.logged_metrics

@@ -14,14 +14,12 @@ from .utils.torch_utils import MLPBase, EMAMetric
 torch.set_float32_matmul_precision('high')
 
 class MRLFADS(pl.LightningModule):
-    """Multi-Regional Latent Factor Analysis via Dynamical Systems (MRLFADS).
+    """
+    Multi-Regional Latent Factor Analysis via Dynamical Systems (MRLFADS).
     
     This module implements the MRLFADS model, a sequential autoencoder
     framework for jointly modeling neural population activity recorded
     from multiple brain regions. 
-    
-    The model is described in the corresponding OpenReview paper:
-        https://openreview.net/forum?id=O14GjxDAt3
     """
     def __init__(
         self,
@@ -57,7 +55,6 @@ class MRLFADS(pl.LightningModule):
         lr_adam_beta1: float = 0.9,
         lr_adam_beta2: float = 0.99,
         lr_adam_epsilon: float = 1.0e-8,
-        lr_pct_start: float = 0.2,
         weight_decay: float = 0.0,
         
         # ----- misc parameters ---------------------- #
@@ -68,6 +65,60 @@ class MRLFADS(pl.LightningModule):
         global_area = None,
         detach_hn = True,
     ):
+        """
+        Args:
+            areas_params: A dictionary where keys are area names and values are dictionaries of 
+                area-specific parameters (e.g., number of neurons, readin/readout modules, priors, etc.).
+            num_other_areas: The number of other areas (total areas - 1) used for communication.
+            seq_len: The length of the input data sequences (trial duration).
+            ic_enc_seq_len: The number of time steps used to infer the initial condition. 
+                Must be greater than zero.
+
+            l2_start_epoch: The epoch at which to start applying L2 regularization.
+            l2_increase_epoch: The number of epochs over which to increase L2 regularization to its 
+                full value.
+            l2_scale: The coefficient of the L2 regularization term.
+
+            kl_start_epoch_co: The epoch at which to start applying KL regularization for inferred inputs.
+            kl_increase_epoch_co: The number of epochs over which to increase KL regularization for 
+                inferred inputs to its full value.
+            kl_start_epoch_com: The epoch at which to start applying KL regularization for communication 
+                messages.
+            kl_increase_epoch_com: The number of epochs over which to increase KL regularization for 
+                communication messages to its full value.
+            kl_ic_scale: The coefficient of the KL regularization term for initial condition latents.
+            kl_co_scale: The coefficient of the KL regularization term for inferred inputs.
+            kl_com_scale: The coefficient of the KL regularization term for communication messages.
+            
+            kl_co_scale_init: The initial coefficient of the KL regularization term for inferred inputs at the start of training (before ramping up).
+            kl_start_epoch_gv: The epoch at which to start applying KL regularization for global variables.
+            kl_increase_epoch_gv: The number of epochs over which to increase KL regularization for global variables to its full value.
+            kl_gv_scale: The coefficient of the KL regularization term for global variables.
+            
+            lr_scheduler_type: The type of learning rate scheduler to use (currently, only 
+                'ReduceLROnPlateau' is supported).
+            lr_init: The initial learning rate for the optimizer.
+            lr_stop: The minimum learning rate for the 'ReduceLROnPlateau' scheduler.
+            lr_decay: The factor by which to reduce the learning rate for the 'ReduceLROnPlateau' 
+                scheduler.
+            lr_patience: The number of epochs with no improvement after which to reduce the learning rate 
+                for the 'ReduceLROnPlateau' scheduler.
+            lr_adam_beta1: The beta1 parameter for the Adam optimizer.
+            lr_adam_beta2: The beta2 parameter for the Adam optimizer.
+            lr_adam_epsilon: The epsilon parameter for the Adam optimizer.
+            weight_decay: The weight decay (L2 regularization) parameter for the optimizer.
+
+            dropout_rate: The dropout rate to use in the model.
+            cell_clip: The value to which to clip the hidden states of RNN cells.
+
+            hn_indices: A dictionary specifying the indices of heldout neurons for each area and session.
+            kl_com_scale_override: A dictionary specifying any overrides for the KL divergence weight for 
+                communication messages, keyed by area name.
+            global_area: An optional module defining the global area. If None, a placeholder empty global area 
+                will be used.
+            detach_hn: Whether to detach the factor states when computing heldout neuron predictions 
+                (to prevent gradients from flowing through them).
+        """
         super().__init__()
         
         # ----- Hyperparameters -------------- #
@@ -509,18 +560,8 @@ class MRLFADS(pl.LightningModule):
                 min_lr=hps.lr_stop,
                 verbose=True,
             )
-        elif hps.lr_scheduler_type == 'OneCycleLR':
-            div_factor = 1e-2 / hps.lr_init
-            scheduler = torch.optim.lr_scheduler.OneCycleLR(
-                optimizer=optimizer,
-                max_lr=1e-2,
-                epochs=self.trainer.max_epochs,
-                steps_per_epoch=1,
-                pct_start=hps.lr_pct_start,
-                anneal_strategy="cos",
-                div_factor=div_factor,
-                cycle_momentum=False,
-            )
+        else:
+            raise NotImplementedError(f"Unsupported lr_scheduler_type: {hps.lr_scheduler_type}")
         
         return {
             "optimizer": optimizer,
