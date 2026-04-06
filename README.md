@@ -38,10 +38,11 @@
    conda create -n mrlfads_env python=3.8.5 -y
    conda activate mrlfads_env
    ```
-3. Install system dependencies required for `torch.compile` (Linux only):
 
-  > **Note:** The following commands are specific to **Ubuntu/Debian** systems (`apt-get`).  
-  > If you are on another distribution (e.g., RHEL/CentOS/Amazon Linux using `yum`/`dnf`), or if `gcc` and `g++` are already installed, you can **skip this step**.
+3. (Optional) Install system dependencies required for `torch.compile`:
+
+  > **Note:** This step is optional but recommended, as `torch.compile` can significantly speed up training.
+  > This step is specific to **Ubuntu/Debian** systems (`apt-get`).
 
   Ubuntu / Debian:
    ```sh
@@ -69,10 +70,9 @@
    resultpath = "/absolute/path/to/results"  # directory for training outputs
    ```
 
-5. Install required packages for the `mrlfads` module:
+5. Run the setup script (configures compilers and installs Python packages):
    ```sh
-   python -m pip install -r requirements.txt
-   pip install -e .
+   bash env.sh
    ```
 
 <!-- TUTORIAL -->
