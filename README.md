@@ -64,7 +64,12 @@
    python -m pip install -r requirements.txt
    pip install -e .
    ```
-5. Configure local paths by editing `config/paths.py` to match your environment.
+5. Create `config/paths.py` and specify the following paths in the file to match your local environment:
+   ```sh
+   homepath = '/'
+   datapath = '/data'
+   resultpath = '/results'
+   ```
 
 <!-- TUTORIAL -->
 ## Tutorial
