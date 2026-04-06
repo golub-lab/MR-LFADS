@@ -40,20 +40,20 @@
   > **Note:** The following commands are specific to **Ubuntu/Debian** systems (`apt-get`).  
   > If you are on another distribution (e.g., RHEL/CentOS/Amazon Linux using `yum`/`dnf`), or if `gcc` and `g++` are already installed, you can **skip this step**.
 
-  #### Ubuntu / Debian:
+  Ubuntu / Debian:
    ```sh
    sudo apt-get update
    sudo apt-get install -y build-essential
    ```
 
-  #### Verify required tools:
+  Verify required tools:
   ```sh
   gcc --version
   g++ --version
   make --version
   ```
 
-  #### Set compiler environment variables:
+  Set compiler environment variables:
   ```sh
    export CC=gcc
    export CXX=g++
