@@ -285,7 +285,8 @@ class TimerPlot:
         self.elapsed = []
 
     def run(self, trainer, pl_module, **kwargs):
-
+        if (trainer.current_epoch % self.log_every_n_epochs) != 0: return None
+            
         prev_time = self.cur_time
         now = time.perf_counter()
         elapsed = now - prev_time
@@ -295,14 +296,13 @@ class TimerPlot:
         message = f"EPOCH {trainer.current_epoch}: {elapsed}"
         write_logfile("timer.txt", message)
         
-        if (trainer.current_epoch % self.log_every_n_epochs) != 0:
-            fig, ax = plt.subplots(1, 1, figsize=(4,3))
-            plt.plot(self.elapsed, 'k.')
-            plt.xlabel('Records')
-            plt.ylabel('Elapsed Time')
-            vis.set_invisible(ax)
-            plt.savefig(f"{SAVE_DIR}/timer_plot_epoch{trainer.current_epoch}.png")
-            plt.close("all")
+        fig, ax = plt.subplots(1, 1, figsize=(4,3))
+        plt.plot(self.elapsed, 'k.')
+        plt.xlabel('Records')
+        plt.ylabel('Elapsed Time')
+        vis.set_invisible(ax)
+        plt.savefig(f"{SAVE_DIR}/timer_plot_epoch{trainer.current_epoch}.png")
+        plt.close("all")
         return {}
     
 # ===== Visualizations ===== #
