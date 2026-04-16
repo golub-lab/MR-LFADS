@@ -43,7 +43,7 @@ l2_scale: 1.0e+4
 # Other regularization
 dropout_rate: 0.3
 cell_clip: 5.0
-detach_hn: false
+detach_hn: true
 
 # ----- MODEL ARCHITECTURE ----- #
 areas_params:
@@ -56,15 +56,14 @@ areas_params:
         # Architecture
         data_dim: 64
         ic_enc_dim: 64
-        ci_enc_dim: 128
+        ci_enc_dim: 64
         ci_lag: 0
         con_dim: 128
         co_dim: 6
         ic_dim: 64
-        gen_dim: ${eval:${model.areas_params.A0.num_neurons.n0} * 1}
+        gen_dim: ${eval:${model.areas_params.A0.num_neurons.n0} * 2}
         fac_dim: ${model.areas_params.A0.data_dim}
         com_dim: 12
-        ci_enc_type: 'bidirectional'
 
         # Readin / Readout
         readin:
@@ -79,11 +78,11 @@ areas_params:
           modules:
             - _target_: mrlfads.utils.torch_utils.ScaledLinear
               in_features: ${model.areas_params.A0.fac_dim}
-              out_features: ${eval:${model.areas_params.A0.num_neurons.n0} * 1}
+              out_features: ${eval:${model.areas_params.A0.num_neurons.n0} * 2}
 
         # Priors / Posteriors
         output_dist:
-          _target_: mrlfads.utils.torch_utils.Poisson
+          _target_: mrlfads.utils.torch_utils.Gaussian
         co_prior:
           _target_: mrlfads.utils.torch_utils.MultivariateNormal
           mean: 0
@@ -113,19 +112,18 @@ areas_params:
         num_neurons:
           n0: 64
         ext_input_dim: 0
-        
+    
         # Architecture
         data_dim: 64
         ic_enc_dim: 64
-        ci_enc_dim: 128
+        ci_enc_dim: 64
         ci_lag: 0
         con_dim: 128
         co_dim: 6
         ic_dim: 64
-        gen_dim: ${eval:${model.areas_params.A1.num_neurons.n0} * 1}
+        gen_dim: ${eval:${model.areas_params.A1.num_neurons.n0} * 2}
         fac_dim: ${model.areas_params.A1.data_dim}
         com_dim: 12
-        ci_enc_type: 'bidirectional'
 
         # Readin / Readout
         readin:
@@ -140,11 +138,11 @@ areas_params:
           modules:
             - _target_: mrlfads.utils.torch_utils.ScaledLinear
               in_features: ${model.areas_params.A1.fac_dim}
-              out_features: ${eval:${model.areas_params.A1.num_neurons.n0} * 1}
+              out_features: ${eval:${model.areas_params.A1.num_neurons.n0} * 2}
 
         # Priors / Posteriors
         output_dist:
-          _target_: mrlfads.utils.torch_utils.Poisson
+          _target_: mrlfads.utils.torch_utils.Gaussian
         co_prior:
           _target_: mrlfads.utils.torch_utils.MultivariateNormal
           mean: 0
@@ -174,19 +172,18 @@ areas_params:
         num_neurons:
           n0: 64
         ext_input_dim: 0
-        
+    
         # Architecture
         data_dim: 64
         ic_enc_dim: 64
-        ci_enc_dim: 128
+        ci_enc_dim: 64
         ci_lag: 0
         con_dim: 128
         co_dim: 6
         ic_dim: 64
-        gen_dim: ${eval:${model.areas_params.A2.num_neurons.n0} * 1}
+        gen_dim: ${eval:${model.areas_params.A2.num_neurons.n0} * 2}
         fac_dim: ${model.areas_params.A2.data_dim}
         com_dim: 12
-        ci_enc_type: 'bidirectional'
 
         # Readin / Readout
         readin:
@@ -201,11 +198,11 @@ areas_params:
           modules:
             - _target_: mrlfads.utils.torch_utils.ScaledLinear
               in_features: ${model.areas_params.A2.fac_dim}
-              out_features: ${eval:${model.areas_params.A2.num_neurons.n0} * 1}
+              out_features: ${eval:${model.areas_params.A2.num_neurons.n0} * 2}
 
         # Priors / Posteriors
         output_dist:
-          _target_: mrlfads.utils.torch_utils.Poisson
+          _target_: mrlfads.utils.torch_utils.Gaussian
         co_prior:
           _target_: mrlfads.utils.torch_utils.MultivariateNormal
           mean: 0

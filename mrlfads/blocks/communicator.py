@@ -60,7 +60,9 @@ class Communicator(nn.Module):
             if mask_hn:
                 f = factor_state[ia]
                 mask = getattr(self, f"mask_{area_name}")
-                factor_masked = f.masked_fill(mask, 0)
+                mask_len = mask.shape[-1]
+                factor_masked = f.clone()
+                factor_masked[:, :mask_len] = factor_masked[:, :mask_len].masked_fill(mask, 0)
             else:
                 factor_masked = factor_state[ia]
 

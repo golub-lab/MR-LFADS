@@ -1,6 +1,6 @@
 _target_: mrlfads.datamodules.BasicDataModule
 
-filename: memory_network_icml2025
+filename: sgrnn2410042124
 session_idxs:
     - 0
     
@@ -11,3 +11,4 @@ area_names:
 
 batch_size: 16
 train_val_split_seed: 42
+ignore_info: true

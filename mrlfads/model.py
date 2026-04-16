@@ -64,6 +64,9 @@ class MRLFADS(pl.LightningModule):
         kl_com_scale_override: dict = {},                     # kl_com specifications
         global_area = None,
         detach_hn = True,
+        compile_communicator = True,
+        compile_decoder = True,
+        compile_readout = True,
     ):
         """
         Args:
@@ -144,24 +147,21 @@ class MRLFADS(pl.LightningModule):
         self.holdout = HoldoutNeuron(self.hparams)
         
         # Build parallel processors (for faster training)
+        def _compile(module, use_compile):
+            if not use_compile:
+                return module
+            return torch.compile(
+                module,
+                mode="default",
+                fullgraph=False,
+            )
+        
         cprocessor = CommunicatorProcessor(self.areas)
-        self.cprocessor = torch.compile(
-            cprocessor,
-            mode="default",  
-            fullgraph=False,
-        )
+        self.cprocessor = _compile(cprocessor, hps.compile_communicator)
         dprocessor = DecoderProcessor(self.areas)
-        self.dprocessor = torch.compile(
-            dprocessor,
-            mode="default",
-            fullgraph=False,
-        )
+        self.dprocessor = _compile(dprocessor, hps.compile_decoder)
         rprocessor = ReadoutProcessor(self.areas)
-        self.rprocessor = torch.compile(
-            rprocessor,
-            mode="default",
-            fullgraph=False,
-        )
+        self.rprocessor = _compile(rprocessor, hps.compile_readout)
 
     def forward(
         self,

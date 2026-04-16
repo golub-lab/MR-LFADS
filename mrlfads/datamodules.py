@@ -136,8 +136,9 @@ class BasicDataModule(pl.LightningDataModule):
                         arr = arr[batches]
 
                     # Neuron number limits, get the ones with most fluctuation
+                    self.included_neurons = np.arange(arr.shape[-1]).astype(int)
                     if not hps.nn_lim:
-                        self.included_neurons = np.arange(arr.shape[-1]).astype(int)
+                        pass
                     else:
                         if hps.nn_select == 'maximum':
                             fluctuations = np.std(arr, axis=(0, 1))

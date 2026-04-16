@@ -89,7 +89,8 @@ class SREncoder(nn.Module):
         gen_init = self.ic_to_g0(ic_samp)
         gen_init = self.dropout(gen_init)
         factor_init = self.g0_to_f0(gen_init)
-        return (ic_mean, ic_std, ci), (self.c0, gen_init, factor_init)
+        ic_params = torch.cat([ic_mean, ic_std], dim=1)
+        return (ic_params, ci), (self.c0, gen_init, factor_init)
     
 class BiEncoder(nn.Module):
     def __init__(self, hparams: dict, ic_prior):
