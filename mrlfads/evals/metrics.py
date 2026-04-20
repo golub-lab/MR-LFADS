@@ -35,6 +35,23 @@ def get_holdout(model, area_name):
         )
     return hn
 
+def get_pseudo_rsquared(model, sess=0):
+    
+    ic_enc_seq_len = model.hparams.ic_enc_seq_len
+    r2_holdin_dict = {}, r2_holdout_dict = {}
+    
+    for area_name in model.area_names:
+        
+        data = model.raw_batch[sess].encod_data[area_name][:, ic_enc_seq_len:]
+        hn_idx = model.hparams.hn_indices[area_name][sess]
+        
+        r2_in = model.areas[area_name].output_dist.pseudo_r2(data, model.outputs[area_name][sess], reduction=reduction)
+        r2_out = model.areas[area_name].output_dist.pseudo_r2(data[..., hn_idx], model.preds[area_name][sess], reduction=reduction)
+        r2_holdin_dict[area_name] = r2_in
+        r2_holdout_dict[area_name] = r2_out
+        
+    return r2_holdin_dict, r2_holdout_dict
+
 def fit_metrics(model, metrics):
     """Aggregate reconstruction and fit metrics into a summary dictionary.
 
@@ -50,17 +67,15 @@ def fit_metrics(model, metrics):
     """
 
     hps = model.hparams
-    r2, r2_holdout = r_squared_rel_null(model) # calculates r-squared values
+    r2_in, r2_out = get_pseudo_rsquared(model) # calculates r-squared values
     res = {
         'total': (metrics['valid/recon'] + metrics['valid/kl/u'] * hps.kl_co_scale + metrics['valid/kl/m'] * hps.kl_com_scale).item(),
         'recon': metrics['valid/recon'].item(),
         'hn': metrics['valid/hn'].item(),
         'kl(u)': metrics['valid/kl/u'].item() / hps.kl_co_scale,
         'kl(m)': metrics['valid/kl/m'].item() / hps.kl_com_scale,
-        'r2(standard)': np.mean([val[0] for val in r2.values()]),
-        'r2(standard; holdout)': np.mean([val[0] for val in r2_holdout.values()]),
-        'r2(mcfadden)': np.mean([val[1] for val in r2.values()]),
-        'r2(mcfadden; holdout)': np.mean([val[1] for val in r2_holdout.values()]),
+        'r2(holdin)': np.mean(list(r2_in.values())),
+        'r2(holdout)': np.mean(list(r2_out.values())),
     }
     return res
 
@@ -94,35 +109,6 @@ def cosine_similarity(model, true_m, true_u):
                 true_flat.append(true_m[i, j])
                 
     return 1-cosine(pred_m_flat, true_flat), 1-cosine(pred_u, true_u)
-
-def r_squared_rel_null(model):
-    """Compute R² metrics relative to a null model for each area.
-
-    For each area, computes standard and McFadden R² for held-in and held-out neurons.
-
-    Args:
-        model: `MRLFADS` class.
-
-    Returns:
-        r2: Dict mapping area name to (r2_standard, r2_mcfadden) for held-in neurons.
-        r2_holdout: Dict mapping area name to (r2_standard, r2_mcfadden) for held-out neurons.
-    """
-    r2, r2_holdout = {}, {}
-    for area_name in model.area_names:
-        ic_enc_seq_len = model.hparams.ic_enc_seq_len
-        data = model.raw_batch[0].encod_data[area_name][:, ic_enc_seq_len:]
-        hn_idx = model.hparams.hn_indices[area_name][0]
-        
-        # R-squared values for heldin neurons
-        r2_std = model.areas[area_name].output_dist.pseudo_r2(data, model.outputs[area_name][0], mode='standard')
-        r2_mcf = model.areas[area_name].output_dist.pseudo_r2(data, model.outputs[area_name][0], mode='mcfadden')
-        r2[area_name] = (r2_std, r2_mcf)
-        
-        # R-squared values for heldout neurons
-        r2_std = model.areas[area_name].output_dist.pseudo_r2(data[..., hn_idx], model.preds[area_name][0], mode='standard')
-        r2_mcf = model.areas[area_name].output_dist.pseudo_r2(data[..., hn_idx], model.preds[area_name][0], mode='mcfadden')
-        r2_holdout[area_name] = (r2_std, r2_mcf)
-    return r2, r2_holdout
 
 def volume(model, reduction=None):
     '''Extract communication and inferred-input volumes from a model over batch and time.

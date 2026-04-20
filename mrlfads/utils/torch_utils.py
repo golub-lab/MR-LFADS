@@ -289,18 +289,38 @@ class Poisson:
     def compute_means(self, output_params):
         return torch.exp(output_params[..., 0])
     
-    def pseudo_r2(self, data, output_params):
-        nll_model = self(data, output_params)
-        nll_null = F.poisson_nll_loss(
-            data,
-            torch.mean(
-                data.to(torch.float), dim=(0, 1), keepdim=True).repeat(
-                    *list(data.shape[:2]) + [1]
-                ) + 1e-16,
+    def pseudo_r2(self, data, output_params, reduction='mean'):
+        data = data.to(torch.float)
+
+        nll_model = F.poisson_nll_loss(
+            input=output_params.exp(),
+            target=data,
+            log_input=False,
             full=True,
             reduction="none",
         )
-        return (1 - nll_model / nll_null).mean().item()
+        
+        batch_size, time_size = data.shape[:2]
+        output_null = torch.mean(data, dim=0, keepdim=True)
+        output_null = output_null.expand_as(output_params)
+
+        nll_null = F.poisson_nll_loss(
+            input=output_null,
+            target=data,
+            log_input=False,
+            full=True,
+            reduction="none",
+        )
+        mask = nll_null > 0
+        
+        if reduction == 'mean':
+            r2 = (1 - (nll_model * mask).mean() / (nll_null * mask).mean())
+            return r2.item()
+        elif reduction == 'neuron':
+            r2 = (1 - (nll_model * mask).mean(dim=(0,1)) / (nll_null * mask).mean(dim=(0,1)))
+            return r2.cpu().detach().numpy()
+        else:
+            raise ValueError()
         
 class Gaussian:
     def __init__(self):
@@ -325,10 +345,10 @@ class Gaussian:
     def compute_means(self, output_params):
         return output_params[..., 0]
     
-    def pseudo_r2(self, data, output_params):
+    def pseudo_r2(self, data, output_params, reduction='mean'):
         nll_model = self(data, output_params)
-        mean_null = data.mean(dim=(0,1), keepdim=True)
-        var_null = data.var(dim=(0,1), keepdim=True).clamp_min(1e-8)
+        mean_null = data.mean(dim=0, keepdim=True)
+        var_null = data.var(dim=0, keepdim=True).clamp_min(1e-8)
         
         nll_null = F.gaussian_nll_loss(
             input=mean_null.expand_as(data),
@@ -337,7 +357,14 @@ class Gaussian:
             full=True,
             reduction="none",
         )
-        return (1 - nll_model / nll_null).mean().item()
+        
+        if reduction == 'mean':
+            return (1 - nll_model.mean() / nll_null.mean()).item()
+        elif reduction == 'neuron':
+            r2 = (1 - nll_model.mean(dim=(0,1)) / nll_null.mean(dim=(0,1)))
+            return r2.cpu().detach().numpy()
+        else:
+            raise ValueError()
     
 # ===== Metrics ===== #
 

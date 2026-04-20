@@ -1,6 +1,6 @@
 _target_: mrlfads.datamodules.BasicDataModule
 
-filename: sgrnn2410042124
+filename: memory_network_icml2025
 session_idxs:
     - 0
     
