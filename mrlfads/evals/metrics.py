@@ -157,8 +157,8 @@ def volume(model, reduction=None):
         num_other_areas_name.pop(ia)
 
         inputs = model.save_var[area_name].inputs.detach().cpu()
-        ci_size, com_dim, co_dim = ahps.ci_size, ahps.com_dim, ahps.co_dim
-        _, com, co = torch.split(inputs, [ci_size, com_dim * hps.num_other_areas, co_dim], dim=2)
+        ci_enc_dim, com_dim, co_dim = ahps.ci_enc_dim, ahps.com_dim, ahps.co_dim
+        _, com, co = torch.split(inputs, [ci_enc_dim, com_dim * hps.num_other_areas, co_dim], dim=2)
 
         for ioa in range(hps.num_other_areas):
             idx = ioa + 1 if ioa >= ia else ioa
